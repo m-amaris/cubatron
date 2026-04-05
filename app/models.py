@@ -15,15 +15,12 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class DrinkRecipe(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(index=True, unique=True)
-    description: Optional[str] = None
-    mixer: str
-    spirit: str
-    spirit_ml: int
-    mixer_ml: int
+    id: int | None = Field(default=None, primary_key=True)
+    name: str
+    description: str
+    ingredients: str = ""  # Ej: "CocaCola, Ron"
+    xp_reward: int = 150   # Experiencia que da al prepararla
     enabled: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class Dispense(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -51,6 +48,7 @@ class Tank(SQLModel, table=True):
     current_ml: int
     enabled: bool = True
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    liquid_type: str = "mixer"
 
 class MachineEvent(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
