@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cubatron Dashboard</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Cubatron Dashboard</h1>
+    <div class="grid">
+      <section class="card">
+        <h2>Perfil</h2>
+        <div id="me"></div>
+      </section>
+      <section class="card">
+        <h2>Últimos cubatas</h2>
+        <div id="drinks"></div>
+      </section>
+      <section class="card">
+        <h2>Preparar cubata</h2>
+        <div id="recipes"></div>
+      </section>
+      <section class="card">
+        <h2>Máquina</h2>
+        <div id="machine"></div>
+        <button onclick="purgeMachine()">Purgar</button>
+        <button onclick="primeMachine()">Cebar</button>
+        <button onclick="cleanMachine()">Limpieza</button>
+      </section>
+    </div>
+  </main>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

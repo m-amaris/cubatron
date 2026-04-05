@@ -1,0 +1,42 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #111827;
+  color: #f3f4f6;
+  margin: 0;
+  padding: 0;
+}
+.container {
+  max-width: 1100px;
+  margin: 40px auto;
+  padding: 20px;
+}
+.container.small {
+  max-width: 400px;
+}
+h1, h2 {
+  color: #22c55e;
+}
+form, .card {
+  background: #1f2937;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+input, button {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: none;
+}
+button {
+  background: #22c55e;
+  color: #111827;
+  font-weight: bold;
+  cursor: pointer;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
