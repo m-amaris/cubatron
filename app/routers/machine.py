@@ -14,7 +14,6 @@ class TankUpdate(BaseModel):
     name: str
     liquid_type: str
     current_ml: int  # <-- AHORA SÍ: Coincide exactamente con lo que manda la web
-@router.get("/status")
 
 @router.get("/status")
 def status(session: Session = Depends(get_session)):

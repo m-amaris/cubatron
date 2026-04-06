@@ -153,6 +153,20 @@ def dashboard_page():
         
         .avatar-img { width: 100%; height: 100%; object-fit: cover; }
         .ingredient-tag { padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.2s; }
+        .glass-tag { padding: 8px 12px; border-radius: 12px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.2s; border: 1px solid var(--border); background: var(--surface-2); }
+        .serve-mode-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:12px; }
+        .serve-mode-box { background: var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:10px; }
+        .serve-mode-box h4 { margin:0 0 10px; color:var(--primary); text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+        .serve-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+        .serve-row input { width:70px; }
+
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(1, 6, 15, 0.75); display: none; align-items: center; justify-content: center; z-index: 120; padding: 16px; }
+        .modal-backdrop.open { display: flex; }
+        .modal-card { width: 100%; max-width: 760px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; box-shadow: 0 20px 40px rgba(0,0,0,0.45); }
+        .glass-picker, .mode-picker { display:grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 10px 0 14px; }
+        .pick-item { border: 1px solid var(--border); background: var(--bg); border-radius: 10px; padding: 10px; cursor: pointer; text-align:center; }
+        .pick-item.active { border-color: var(--primary); background: rgba(16, 185, 129, 0.12); }
+        .pick-item .ico { font-size: 22px; display:block; margin-bottom: 6px; }
       </style>
     </head>
     <body>
@@ -281,10 +295,11 @@ def dashboard_page():
 
                 <div class="card" style="margin-bottom:24px;">
                     <h2>Gestión de Recetas</h2>
-                    <p class="muted" style="font-size:14px;">Configura las recetas y selecciona qué líquidos son imprescindibles para prepararla.</p>
+                    <p class="muted" style="font-size:14px;">Configura ingredientes, tipos de vaso y perfiles LOW/MEDIUM/HIGH/EXTREME por receta.</p>
                     <div id="admin-recipes-list" style="margin-bottom:16px;"></div>
                     
                     <form id="add-recipe-form" onsubmit="addRecipe(event)" style="display:flex; flex-direction:column; gap:12px; background:var(--bg); padding:16px; border-radius:8px; border:1px solid var(--border);">
+                        <input type="hidden" id="nr-id" value="">
                         <div style="display:flex; gap:8px; flex-wrap:wrap;">
                             <input type="text" id="nr-name" class="form-control" placeholder="Nombre (Ej: Ron Cola)" required style="flex:1; min-width:150px;">
                             <input type="number" id="nr-xp" class="form-control" placeholder="XP" required style="width:80px;" value="150">
@@ -298,7 +313,21 @@ def dashboard_page():
                             </div>
                             <input type="hidden" id="nr-ing-hidden" value="">
                         </div>
-                        <button type="submit" class="btn" style="align-self:flex-start;">Añadir Receta</button>
+
+                        <div>
+                            <label style="font-size:13px; color:var(--muted); margin-bottom:8px; display:block;">Tipos de vaso disponibles:</label>
+                            <div id="nr-glass-selector" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+                        </div>
+
+                        <div>
+                            <label style="font-size:13px; color:var(--muted); margin-bottom:8px; display:block;">Distribución por modo (%)</label>
+                            <div id="nr-serving-modes" class="serve-mode-grid"></div>
+                        </div>
+
+                        <div style="display:flex; gap:8px;">
+                            <button type="submit" id="nr-submit" class="btn" style="align-self:flex-start;">Añadir Receta</button>
+                            <button type="button" class="btn btn-secondary" onclick="resetRecipeForm()">Cancelar edición</button>
+                        </div>
                     </form>
                 </div>
                 
@@ -368,12 +397,130 @@ def dashboard_page():
         </div>
       </div>
 
+      <div id="serve-modal" class="modal-backdrop" onclick="closeServeModal(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                <h3 id="serve-title" style="margin:0; color:var(--primary);">Configurar servicio</h3>
+                <button class="btn btn-secondary btn-small" onclick="closeServeModal()">Cerrar</button>
+            </div>
+            <p id="serve-desc" style="margin:8px 0 10px; color:var(--muted);">Selecciona vaso y modo.</p>
+
+            <label style="font-size:13px; color:var(--muted);">Tipo de vaso</label>
+            <div id="serve-glass-picker" class="glass-picker"></div>
+
+            <label style="font-size:13px; color:var(--muted);">Modo de servido</label>
+            <div id="serve-mode-picker" class="mode-picker"></div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+                <button class="btn btn-secondary" onclick="closeServeModal()">Cancelar</button>
+                <button class="btn" onclick="confirmServeDrink()">Preparar</button>
+            </div>
+        </div>
+      </div>
+
       <script>
         const tokenKey = "cubatron_token";
         let currentUser = null; let currentTanks = [];
         let systemSettings = { poll_status: 3000, poll_tanks: 10000, poll_history: 30000, liquids: [] };
-        
-        let selectedIngredients = []; 
+        const GLASS_CATALOG = {
+            highball: { label: "Highball", icon: "🥤" },
+            rocks: { label: "Rocks", icon: "🥃" },
+            coupe: { label: "Coupe", icon: "🍸" },
+            hurricane: { label: "Hurricane", icon: "🍹" },
+            shot: { label: "Shot", icon: "🧪" }
+        };
+        const SERVE_MODES = ["low", "medium", "high", "extreme"];
+
+        let selectedIngredients = [];
+        let selectedGlasses = ["highball"];
+        let recipesCache = [];
+        let adminRecipesCache = [];
+        let tankSignature = "";
+
+        let activeServeRecipe = null;
+        let activeServeGlass = "highball";
+        let activeServeMode = "medium";
+
+        function normalizeModeMap(rawModes, selected) {
+            const safe = rawModes && typeof rawModes === 'object' ? rawModes : {};
+            const out = {};
+            SERVE_MODES.forEach(mode => {
+                const current = safe[mode] && typeof safe[mode] === 'object' ? safe[mode] : {};
+                out[mode] = {};
+                selected.forEach(liq => {
+                    const num = Number(current[liq]);
+                    out[mode][liq] = Number.isFinite(num) ? num : 0;
+                });
+            });
+            return out;
+        }
+
+        function renderGlassSelector() {
+            const container = document.getElementById('nr-glass-selector');
+            if(!container) return;
+            const keys = Object.keys(GLASS_CATALOG);
+            container.innerHTML = keys.map(k => {
+                const g = GLASS_CATALOG[k];
+                const selected = selectedGlasses.includes(k);
+                return `<div class="glass-tag" onclick="toggleGlass('${k}')" style="border-color:${selected ? 'var(--primary)' : 'var(--border)'}; background:${selected ? 'rgba(16, 185, 129, 0.18)' : 'var(--surface-2)'};">${g.icon} ${g.label} ${selected ? '✓' : '+'}</div>`;
+            }).join('');
+        }
+
+        function toggleGlass(glassKey) {
+            if(selectedGlasses.includes(glassKey)) {
+                if(selectedGlasses.length === 1) return;
+                selectedGlasses = selectedGlasses.filter(g => g !== glassKey);
+            } else {
+                selectedGlasses.push(glassKey);
+            }
+            renderGlassSelector();
+        }
+
+        function renderServingModesEditor(existing = null) {
+            const container = document.getElementById('nr-serving-modes');
+            if(!container) return;
+
+            const selected = selectedIngredients.slice();
+            const sourceModes = existing || collectServingModes();
+            const safeModes = normalizeModeMap(sourceModes, selected);
+
+            container.innerHTML = SERVE_MODES.map(mode => {
+                const rows = selected.map(liq => {
+                    const value = safeModes[mode][liq] ?? 0;
+                    return `<div class="serve-row"><span style="flex:1; font-size:12px; color:var(--muted);">${liq}</span><input class="form-control" type="number" min="0" max="100" step="1" data-mode="${mode}" data-liq="${liq}" value="${value}"><span>%</span></div>`;
+                }).join('') || '<p style="margin:0; font-size:12px; color:var(--muted);">Selecciona ingredientes para definir porcentajes.</p>';
+
+                return `<div class="serve-mode-box"><h4>${mode}</h4>${rows}</div>`;
+            }).join('');
+        }
+
+        function collectServingModes() {
+            const modes = {};
+            SERVE_MODES.forEach(mode => modes[mode] = {});
+            document.querySelectorAll('#nr-serving-modes input[data-mode][data-liq]').forEach(el => {
+                const mode = el.dataset.mode;
+                const liq = el.dataset.liq;
+                const value = Number(el.value);
+                modes[mode][liq] = Number.isFinite(value) ? value : 0;
+            });
+            return modes;
+        }
+
+        function getRecipeById(id) {
+            return recipesCache.find(r => Number(r.id) === Number(id));
+        }
+
+        function resetRecipeForm() {
+            const form = document.getElementById('add-recipe-form');
+            form.reset();
+            document.getElementById('nr-id').value = '';
+            document.getElementById('nr-submit').innerText = 'Añadir Receta';
+            selectedIngredients = [];
+            selectedGlasses = ['highball'];
+            renderIngredientSelector();
+            renderGlassSelector();
+            renderServingModesEditor();
+        }
         
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('open');
@@ -491,9 +638,20 @@ def dashboard_page():
                     document.getElementById("status-drinks").innerText = data.drinks_24h;
                 }
 
+                const incomingTanks = data.tanks || [];
+                const newSignature = JSON.stringify(
+                    incomingTanks.map(t => [t.id, t.name || '', t.current_level || 0, t.current_ml || 0])
+                );
+                const changed = newSignature !== tankSignature;
+
                 if(!document.querySelector('select:focus') && !document.querySelector('input:focus')) {
-                    currentTanks = data.tanks || [];
+                    currentTanks = incomingTanks;
                     renderTanks();
+                }
+
+                if(changed) {
+                    tankSignature = newSignature;
+                    await loadRecipes();
                 }
             } catch(e) {}
         }
@@ -561,6 +719,7 @@ def dashboard_page():
         async function loadRecipes() {
             try {
                 const recipes = await apiGet("/api/drinks/recipes");
+                recipesCache = recipes || [];
                 const availableLiquids = currentTanks
                     .filter(t => t.current_level > 0 && t.name)
                     .map(t => t.name.toLowerCase().trim());
@@ -583,7 +742,7 @@ def dashboard_page():
                         </div>
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span class="muted small" style="font-weight:bold;">+${r.xp_reward || 150} XP</span>
-                            <button class="btn" onclick="makeDrink(${r.id})">${canMake ? 'Preparar' : 'Faltan líquidos'}</button>
+                            <button class="btn" onclick="openServeModal(${r.id})">${canMake ? 'Preparar' : 'Faltan líquidos'}</button>
                         </div>
                     </div>
                     `;
@@ -591,9 +750,66 @@ def dashboard_page():
             } catch(e) {}
         }
 
-        async function makeDrink(id) {
+        function openServeModal(id) {
+            const recipe = getRecipeById(id);
+            if(!recipe) return;
+
+            activeServeRecipe = recipe;
+            const availableGlasses = (recipe.glass_options && recipe.glass_options.length > 0) ? recipe.glass_options : ['highball'];
+            const modeKeys = Object.keys(recipe.serving_modes || {});
+
+            activeServeGlass = availableGlasses[0];
+            activeServeMode = modeKeys.includes('medium') ? 'medium' : (modeKeys[0] || 'medium');
+
+            document.getElementById('serve-title').innerText = `Preparar ${recipe.name}`;
+            document.getElementById('serve-desc').innerText = recipe.description || 'Selecciona vaso y modo de servicio.';
+
+            const glassPicker = document.getElementById('serve-glass-picker');
+            glassPicker.innerHTML = availableGlasses.map(g => {
+                const info = GLASS_CATALOG[g] || { label: g, icon: '🥤' };
+                return `<div class="pick-item ${g === activeServeGlass ? 'active' : ''}" onclick="pickServeGlass('${g}')"><span class="ico">${info.icon}</span><strong>${info.label}</strong></div>`;
+            }).join('');
+
+            const modePicker = document.getElementById('serve-mode-picker');
+            const toRenderModes = modeKeys.length > 0 ? modeKeys : SERVE_MODES;
+            modePicker.innerHTML = toRenderModes.map(m => {
+                const profile = recipe.serving_modes?.[m] || {};
+                const text = Object.entries(profile).map(([liq, pct]) => `${liq} ${pct}%`).join(' · ');
+                return `<div class="pick-item ${m === activeServeMode ? 'active' : ''}" onclick="pickServeMode('${m}')"><strong style="text-transform:uppercase;">${m}</strong><div style="font-size:11px; color:var(--muted); margin-top:4px;">${text || 'Sin perfil'}</div></div>`;
+            }).join('');
+
+            document.getElementById('serve-modal').classList.add('open');
+        }
+
+        function pickServeGlass(glassKey) {
+            activeServeGlass = glassKey;
+            document.querySelectorAll('#serve-glass-picker .pick-item').forEach(el => el.classList.remove('active'));
+            const target = Array.from(document.querySelectorAll('#serve-glass-picker .pick-item')).find(el => el.getAttribute('onclick')?.includes(`'${glassKey}'`));
+            if(target) target.classList.add('active');
+        }
+
+        function pickServeMode(mode) {
+            activeServeMode = mode;
+            document.querySelectorAll('#serve-mode-picker .pick-item').forEach(el => el.classList.remove('active'));
+            const target = Array.from(document.querySelectorAll('#serve-mode-picker .pick-item')).find(el => el.getAttribute('onclick')?.includes(`'${mode}'`));
+            if(target) target.classList.add('active');
+        }
+
+        function closeServeModal(ev = null) {
+            if(ev && ev.target && ev.target.id !== 'serve-modal') return;
+            document.getElementById('serve-modal').classList.remove('open');
+            activeServeRecipe = null;
+        }
+
+        async function confirmServeDrink() {
+            if(!activeServeRecipe) return;
+            await makeDrink(activeServeRecipe.id, activeServeMode, activeServeGlass);
+            closeServeModal();
+        }
+
+        async function makeDrink(id, servingMode = 'medium', glassType = 'highball') {
             try {
-                const res = await apiPost("/api/drinks/make", { recipe_id: id });
+                const res = await apiPost("/api/drinks/make", { recipe_id: id, serving_mode: servingMode, glass_type: glassType });
                 alert(`¡Bebida en marcha! 🍹\nHas ganado ${res.xp_earned} XP`);
                 await loadProfile();
                 await loadHistory();
@@ -606,6 +822,8 @@ def dashboard_page():
             document.getElementById('set-tanks').value = systemSettings.poll_tanks;
             renderAdminLiquids();
             renderIngredientSelector();
+            renderGlassSelector();
+            renderServingModesEditor();
             loadAdminRecipes(); 
         }
 
@@ -645,15 +863,20 @@ def dashboard_page():
             document.getElementById('new-liq-name').value = '';
             renderAdminLiquids();
             renderIngredientSelector();
+            renderServingModesEditor();
             renderTanks(); 
+            loadRecipes();
         }
 
         async function deleteLiquid(index) {
             systemSettings.liquids.splice(index, 1);
             await apiPost("/api/admin/settings", systemSettings);
+            selectedIngredients = selectedIngredients.filter(name => (systemSettings.liquids || []).some(l => l.name === name));
             renderAdminLiquids();
             renderIngredientSelector();
+            renderServingModesEditor();
             renderTanks();
+            loadRecipes();
         }
 
         async function saveSettings(ev) {
@@ -691,6 +914,7 @@ def dashboard_page():
                 selectedIngredients.push(name);
             }
             renderIngredientSelector();
+            renderServingModesEditor();
         }
 
         async function addRecipe(ev) {
@@ -698,43 +922,89 @@ def dashboard_page():
             const reqs = document.getElementById('nr-ing-hidden').value;
             if(!reqs) { alert("Selecciona al menos un líquido requerido."); return; }
 
+            const recipeId = parseInt(document.getElementById('nr-id').value || '0');
+            const servingModes = normalizeModeMap(collectServingModes(), selectedIngredients);
+
             const payload = {
                 name: document.getElementById('nr-name').value,
                 description: document.getElementById('nr-desc').value,
                 ingredients: reqs,
-                xp_reward: parseInt(document.getElementById('nr-xp').value)
+                xp_reward: parseInt(document.getElementById('nr-xp').value),
+                glass_options: selectedGlasses.slice(),
+                serving_modes: servingModes,
             };
             
             try {
-                await apiPost("/api/admin/recipes/create", payload);
-                ev.target.reset();
-                selectedIngredients = [];
-                renderIngredientSelector();
-                loadAdminRecipes();
-                loadRecipes(); 
+                if(recipeId > 0) {
+                    await apiPost(`/api/admin/recipes/${recipeId}`, payload);
+                } else {
+                    await apiPost("/api/admin/recipes/create", payload);
+                }
+                resetRecipeForm();
+                await loadAdminRecipes();
+                await loadRecipes();
             } catch(e) { alert("Error al crear receta."); }
         }
 
         async function loadAdminRecipes() {
             try {
                 const recipes = await apiGet("/api/admin/recipes");
+                adminRecipesCache = recipes || [];
                 const list = document.getElementById('admin-recipes-list');
-                list.innerHTML = recipes.map(r => `
+                list.innerHTML = recipes.map(r => {
+                    const glasses = (r.glass_options || []).join(', ') || '-';
+                    const modes = Object.keys(r.serving_modes || {}).join(', ') || '-';
+                    return `
                     <div style="display:flex; justify-content:space-between; padding:12px; background:var(--bg); border-radius:8px; margin-bottom:8px; border:1px solid var(--border);">
                         <div>
                             <strong style="color:var(--primary);">${r.name}</strong> <span class="muted" style="font-size:12px;">(${r.xp_reward} XP)</span><br>
-                            <span style="font-size:13px; color:var(--muted);">Reqs: ${r.ingredients}</span>
+                            <span style="font-size:13px; color:var(--muted);">Reqs: ${r.ingredients}</span><br>
+                            <span style="font-size:12px; color:var(--muted);">Vasos: ${glasses}</span><br>
+                            <span style="font-size:12px; color:var(--muted);">Modos: ${modes}</span>
                         </div>
-                        <button class="btn btn-small btn-danger" onclick="deleteRecipe(${r.id})">X</button>
+                        <div style="display:flex; gap:8px; align-items:flex-start;">
+                            <button class="btn btn-small btn-secondary" onclick="editRecipe(${r.id})">Editar</button>
+                            <button class="btn btn-small btn-danger" onclick="deleteRecipe(${r.id})">X</button>
+                        </div>
                     </div>
-                `).join('');
+                `;
+                }).join('');
             } catch(e) {}
+        }
+
+        function editRecipe(id) {
+            const recipe = (adminRecipesCache || []).find(r => Number(r.id) === Number(id));
+            if(!recipe) return;
+
+            document.getElementById('nr-id').value = recipe.id;
+            document.getElementById('nr-name').value = recipe.name || '';
+            document.getElementById('nr-desc').value = recipe.description || '';
+            document.getElementById('nr-xp').value = recipe.xp_reward || 150;
+
+            selectedIngredients = (recipe.ingredients || '')
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
+
+            selectedGlasses = (recipe.glass_options && recipe.glass_options.length > 0)
+                ? recipe.glass_options.slice()
+                : ['highball'];
+
+            renderIngredientSelector();
+            renderGlassSelector();
+            renderServingModesEditor(recipe.serving_modes || {});
+
+            document.getElementById('nr-submit').innerText = 'Guardar cambios';
+            document.getElementById('add-recipe-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         async function deleteRecipe(id) {
             await fetch(`/api/admin/recipes/${id}`, {method: 'DELETE', headers: authHeaders()});
-            loadAdminRecipes();
-            loadRecipes();
+            if(parseInt(document.getElementById('nr-id').value || '0') === Number(id)) {
+                resetRecipeForm();
+            }
+            await loadAdminRecipes();
+            await loadRecipes();
         }
 
         // Ranking

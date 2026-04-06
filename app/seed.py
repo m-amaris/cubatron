@@ -1,4 +1,5 @@
 from sqlmodel import Session, select
+import json
 from app.database import engine, create_db_and_tables
 from app.models import User, DrinkRecipe, MachineConfig, Tank
 from app.security import hash_password
@@ -18,23 +19,58 @@ def seed():
                 level=3
             ))
 
-        if not session.exec(select(DrinkRecipe)).first():
-            session.add(DrinkRecipe(
-                name="Ron Cola",
-                description="Clásico cubata equilibrado",
-                mixer="Cola",
-                spirit="Ron",
-                spirit_ml=50,
-                mixer_ml=150
-            ))
-            session.add(DrinkRecipe(
-                name="Gin Lemon",
-                description="Gin con refresco de limón",
-                mixer="Lemon",
-                spirit="Gin",
-                spirit_ml=50,
-                mixer_ml=150
-            ))
+        default_recipes = [
+            {
+                "name": "Ron Cola",
+                "description": "Clásico cubata equilibrado",
+                "ingredients": "Ron, CocaCola",
+                "xp_reward": 150,
+                "enabled": True,
+                "glass_options_json": json.dumps(["highball", "rocks"]),
+                "serving_modes_json": json.dumps({
+                    "low": {"Ron": 30, "CocaCola": 70},
+                    "medium": {"Ron": 40, "CocaCola": 60},
+                    "high": {"Ron": 50, "CocaCola": 50},
+                    "extreme": {"Ron": 65, "CocaCola": 35},
+                }),
+            },
+            {
+                "name": "Gin Lemon",
+                "description": "Gin con refresco de limón",
+                "ingredients": "Ginebra, Limón",
+                "xp_reward": 150,
+                "enabled": True,
+                "glass_options_json": json.dumps(["highball", "coupe"]),
+                "serving_modes_json": json.dumps({
+                    "low": {"Ginebra": 30, "Limón": 70},
+                    "medium": {"Ginebra": 40, "Limón": 60},
+                    "high": {"Ginebra": 50, "Limón": 50},
+                    "extreme": {"Ginebra": 65, "Limón": 35},
+                }),
+            },
+        ]
+
+        for defaults in default_recipes:
+            recipe = session.exec(
+                select(DrinkRecipe).where(DrinkRecipe.name == defaults["name"])
+            ).first()
+
+            if not recipe:
+                session.add(DrinkRecipe(**defaults))
+                continue
+
+            # Repair legacy/empty defaults in place to keep startup idempotent.
+            if not (recipe.ingredients or "").strip():
+                recipe.ingredients = defaults["ingredients"]
+            if not (getattr(recipe, "glass_options_json", "") or "").strip():
+                recipe.glass_options_json = defaults["glass_options_json"]
+            if not (getattr(recipe, "serving_modes_json", "") or "").strip() or recipe.serving_modes_json == "{}":
+                recipe.serving_modes_json = defaults["serving_modes_json"]
+            if not recipe.description:
+                recipe.description = defaults["description"]
+            if not recipe.xp_reward:
+                recipe.xp_reward = defaults["xp_reward"]
+            session.add(recipe)
 
         if not session.exec(select(MachineConfig)).first():
             session.add(MachineConfig())

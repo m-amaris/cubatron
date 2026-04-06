@@ -21,6 +21,8 @@ class DrinkRecipe(SQLModel, table=True):
     ingredients: str = ""  # Ej: "CocaCola, Ron"
     xp_reward: int = 150   # Experiencia que da al prepararla
     enabled: bool = True
+    glass_options_json: str = '["highball", "rocks", "coupe", "hurricane"]'
+    serving_modes_json: str = '{}'
 
 class Dispense(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

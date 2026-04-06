@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 from typing import Optional
+import json
 from app.database import get_session
 from app.models import User, Tank, DrinkRecipe, MachineEvent
 from app.security import hash_password
@@ -32,12 +33,31 @@ class RecipeCreate(BaseModel):
     description: str
     ingredients: str
     xp_reward: int
+    glass_options: list[str] = Field(default_factory=lambda: ["highball", "rocks"])
+    serving_modes: dict[str, dict[str, float]] = Field(default_factory=dict)
     
 class RecipeUpdate(BaseModel):
     name: str
     description: str
     ingredients: str  # Ej: "Ron, Cola"
     xp_reward: int
+    glass_options: list[str] = Field(default_factory=lambda: ["highball", "rocks"])
+    serving_modes: dict[str, dict[str, float]] = Field(default_factory=dict)
+
+
+def _safe_load_json(value: str, fallback):
+    try:
+        loaded = json.loads(value or "")
+        return loaded if loaded is not None else fallback
+    except Exception:
+        return fallback
+
+
+def _recipe_out(recipe: DrinkRecipe) -> dict:
+    out = recipe.model_dump() if hasattr(recipe, "model_dump") else recipe.dict()
+    out["glass_options"] = _safe_load_json(getattr(recipe, "glass_options_json", "[]"), [])
+    out["serving_modes"] = _safe_load_json(getattr(recipe, "serving_modes_json", "{}"), {})
+    return out
 
 @router.get("/overview")
 def overview(session: Session = Depends(get_session)):
@@ -76,7 +96,8 @@ def create_user(user_data: UserCreate, session: Session = Depends(get_session)):
 
 @router.get("/recipes")
 def get_admin_recipes(session: Session = Depends(get_session)):
-    return session.exec(select(DrinkRecipe)).all()
+    recipes = session.exec(select(DrinkRecipe)).all()
+    return [_recipe_out(r) for r in recipes]
 
 @router.post("/recipes/create")
 def create_recipe(data: RecipeCreate, session: Session = Depends(get_session)):
@@ -84,7 +105,9 @@ def create_recipe(data: RecipeCreate, session: Session = Depends(get_session)):
         name=data.name,
         description=data.description,
         ingredients=data.ingredients,
-        xp_reward=data.xp_reward
+        xp_reward=data.xp_reward,
+        glass_options_json=json.dumps(data.glass_options, ensure_ascii=True),
+        serving_modes_json=json.dumps(data.serving_modes, ensure_ascii=True),
     )
     session.add(recipe)
     session.commit()
@@ -99,13 +122,14 @@ def update_recipe(recipe_id: int, data: RecipeUpdate, session: Session = Depends
     
     recipe.name = data.name
     recipe.description = data.description
-    # Asumimos que has añadido estos campos a tu modelo DrinkRecipe en models.py
-    # recipe.ingredients = data.ingredients 
-    # recipe.xp_reward = data.xp_reward
+    recipe.ingredients = data.ingredients
+    recipe.xp_reward = data.xp_reward
+    recipe.glass_options_json = json.dumps(data.glass_options, ensure_ascii=True)
+    recipe.serving_modes_json = json.dumps(data.serving_modes, ensure_ascii=True)
     
     session.add(recipe)
     session.commit()
-    return {"message": "Receta actualizada"}
+    return {"message": "Receta actualizada", "recipe": _recipe_out(recipe)}
 
 
 

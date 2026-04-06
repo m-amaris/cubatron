@@ -6,6 +6,8 @@ class LoginRequest(BaseModel):
 
 class MakeDrinkRequest(BaseModel):
     recipe_id: int
+    serving_mode: str = "medium"
+    glass_type: str = "highball"
 
 class MachineActionRequest(BaseModel):
     action: str
