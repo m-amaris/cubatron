@@ -144,8 +144,9 @@ def dashboard_page():
         .tank-item { background: var(--bg); padding: 16px; border-radius: 8px; border: 1px solid var(--border); }
         
         .recipe-card { border: 1px solid var(--border); border-radius: 12px; padding: 20px; background: var(--bg); display:flex; flex-direction:column; justify-content:space-between; transition: 0.2s;}
-        .recipe-card.disabled { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
+        .recipe-card.disabled { opacity: 0.65; pointer-events: none; }
         .recipe-card.disabled .btn { display: none; }
+        .missing-ingredient { color: var(--warning); font-weight: 700; }
         
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: middle; }
@@ -182,6 +183,7 @@ def dashboard_page():
                     <div id="sb-avatar" style="width:100px; height:100px; border-radius:50%; background:var(--bg); display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:40px; border: 3px solid var(--primary);">👤</div>
                     <div>
                         <div id="sb-name" style="font-weight:bold; font-size:20px; margin-bottom:4px;">Cargando...</div>
+                        <div id="sb-info" style="font-size:13px; color:var(--muted); margin-bottom:4px; min-height:18px;">&nbsp;</div>
                         <div id="sb-level" style="font-size:16px; color:var(--primary); font-weight:800;">LVL -</div>
                     </div>
                 </div>
@@ -281,6 +283,9 @@ def dashboard_page():
                             <input type="text" id="cu-username" class="form-control" placeholder="Nombre de usuario" required>
                         </div>
                         <div class="form-group" style="margin:0; flex:1;">
+                            <input type="text" id="cu-fullname" class="form-control" placeholder="Nombre completo" required>
+                        </div>
+                        <div class="form-group" style="margin:0; flex:1;">
                             <input type="password" id="cu-password" class="form-control" placeholder="Contraseña" required>
                         </div>
                         <div class="form-group" style="margin:0; width:150px;">
@@ -362,7 +367,7 @@ def dashboard_page():
                 <div class="card">
                     <h2>Ranking Global</h2>
                     <table>
-                        <thead><tr><th>FOTO</th><th>POS</th><th>USUARIO</th><th>NIVEL</th><th>XP</th></tr></thead>
+                        <thead><tr><th>FOTO</th><th>POS</th><th>USUARIO</th><th>NIVEL</th><th>XP</th><th>CONSUMICIONES</th><th>BEBIDA FAVORITA</th></tr></thead>
                         <tbody id="ranking-list"></tbody>
                     </table>
                 </div>
@@ -379,11 +384,39 @@ def dashboard_page():
                                 <input type="file" id="edit-avatar" accept="image/*" class="form-control" style="background:var(--surface-2);">
                             </div>
                             <div class="form-group"><label>Nombre a mostrar</label><input type="text" id="edit-fullname" class="form-control"></div>
-                            <div class="form-group"><label>Bebida Favorita</label><input type="text" id="edit-mix" class="form-control"></div>
+                            <div class="form-group">
+                                <label>Bebida Favorita</label>
+                                <select id="edit-mix" class="form-control">
+                                    <option value="">-- Sin favorita --</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label>Info</label><input type="text" id="edit-info" class="form-control" maxlength="140" placeholder="Tu estado o info personal"></div>
                             <button type="submit" class="btn" style="width:100%;">Guardar Cambios</button>
                         </form>
                     </div>
                     
+                    <div class="card" style="height: fit-content;">
+                        <h2>Interfaz</h2>
+                        <div class="form-group">
+                            <label>Tema</label>
+                            <select id="ui-theme" class="form-control">
+                                <option value="dark">Oscuro</option>
+                                <option value="light">Claro</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Acento</label>
+                            <select id="ui-accent" class="form-control">
+                                <option value="emerald">Verde</option>
+                                <option value="blue">Azul</option>
+                                <option value="orange">Naranja</option>
+                                <option value="rose">Rosa</option>
+                                <option value="slate">Pizarra</option>
+                            </select>
+                        </div>
+                        <p style="font-size:12px; color:var(--muted); margin:0;">Se guardan por usuario y se aplican al iniciar sesión.</p>
+                    </div>
+
                     <div class="card" style="height: fit-content;">
                         <h2>Seguridad</h2>
                         <form id="password-form" onsubmit="updatePassword(event)">
@@ -430,6 +463,46 @@ def dashboard_page():
             shot: { label: "Shot", icon: "🧪" }
         };
         const SERVE_MODES = ["low", "medium", "high", "extreme"];
+        const ACCENT_PALETTE = {
+            emerald: { primary: "#10b981", hover: "#059669" },
+            blue: { primary: "#3b82f6", hover: "#2563eb" },
+            orange: { primary: "#f97316", hover: "#ea580c" },
+            rose: { primary: "#f43f5e", hover: "#e11d48" },
+            slate: { primary: "#64748b", hover: "#475569" },
+        };
+
+        function applyThemePreferences(themeMode = 'dark', accentColor = 'emerald') {
+            const root = document.documentElement;
+            const accent = ACCENT_PALETTE[accentColor] || ACCENT_PALETTE.emerald;
+
+            if(themeMode === 'light') {
+                root.style.setProperty('--bg', '#f1f5f9');
+                root.style.setProperty('--surface', '#ffffff');
+                root.style.setProperty('--surface-2', '#e2e8f0');
+                root.style.setProperty('--text', '#0f172a');
+                root.style.setProperty('--muted', '#475569');
+                root.style.setProperty('--border', '#cbd5e1');
+            } else {
+                root.style.setProperty('--bg', '#0f172a');
+                root.style.setProperty('--surface', '#1e293b');
+                root.style.setProperty('--surface-2', '#334155');
+                root.style.setProperty('--text', '#f8fafc');
+                root.style.setProperty('--muted', '#94a3b8');
+                root.style.setProperty('--border', '#334155');
+            }
+
+            root.style.setProperty('--primary', accent.primary);
+            root.style.setProperty('--primary-hover', accent.hover);
+        }
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
 
         let selectedIngredients = [];
         let selectedGlasses = ["highball"];
@@ -553,10 +626,35 @@ def dashboard_page():
             return await res.json();
         }
 
+        async function loadFavoriteMixOptions(selectedValue = '') {
+            const selectEl = document.getElementById('edit-mix');
+            if(!selectEl) return;
+            try {
+                const recipes = await apiGet('/api/drinks/recipes');
+                const options = ['<option value="">-- Sin favorita --</option>'];
+                (recipes || []).forEach(r => {
+                    const name = escapeHtml(r.name || '');
+                    if(!name) return;
+                    options.push(`<option value="${name}">${name}</option>`);
+                });
+                selectEl.innerHTML = options.join('');
+
+                if(selectedValue) {
+                    const available = Array.from(selectEl.options).some(o => o.value === selectedValue);
+                    selectEl.value = available ? selectedValue : '';
+                } else {
+                    selectEl.value = '';
+                }
+            } catch (_) {
+                selectEl.innerHTML = '<option value="">-- Sin favorita --</option>';
+            }
+        }
+
         // Profile & History
         async function loadProfile() {
             currentUser = await apiGet("/api/users/me");
             document.getElementById('sb-name').innerText = currentUser.full_name || currentUser.username;
+            document.getElementById('sb-info').innerText = (currentUser.info || '').trim() || '\u00a0';
             document.getElementById('sb-level').innerText = 'LVL ' + currentUser.level;
             
             let xpCurrent = currentUser.xp % 100;
@@ -570,7 +668,11 @@ def dashboard_page():
             }
 
             document.getElementById('edit-fullname').value = currentUser.full_name || '';
-            document.getElementById('edit-mix').value = currentUser.favorite_mix || '';
+            document.getElementById('edit-info').value = currentUser.info || '';
+            await loadFavoriteMixOptions(currentUser.favorite_mix || '');
+            document.getElementById('ui-theme').value = currentUser.theme_mode || 'dark';
+            document.getElementById('ui-accent').value = currentUser.accent_color || 'emerald';
+            applyThemePreferences(currentUser.theme_mode || 'dark', currentUser.accent_color || 'emerald');
             if(currentUser.role === 'admin') document.getElementById('nav-admin').style.display = 'block';
         }
 
@@ -579,6 +681,9 @@ def dashboard_page():
             const formData = new FormData();
             formData.append('full_name', document.getElementById('edit-fullname').value);
             formData.append('favorite_mix', document.getElementById('edit-mix').value);
+            formData.append('info', document.getElementById('edit-info').value);
+            formData.append('theme_mode', document.getElementById('ui-theme').value);
+            formData.append('accent_color', document.getElementById('ui-accent').value);
             
             const fileInput = document.getElementById('edit-avatar');
             if(fileInput.files.length > 0) formData.append('avatar', fileInput.files[0]);
@@ -726,19 +831,29 @@ def dashboard_page():
                 
                 document.getElementById("recipes-list").innerHTML = recipes.map(r => {
                     const reqString = r.ingredients || "";
-                    const reqs = reqString.split(',').map(x => x.toLowerCase().trim()).filter(x => x.length > 0);
+                    const reqList = reqString.split(',').map(x => x.trim()).filter(x => x.length > 0);
+                    const reqs = reqList.map(x => x.toLowerCase());
                     
                     let canMake = true;
                     if (reqs.length > 0) {
                         canMake = reqs.every(reqWord => availableLiquids.some(tankLiq => tankLiq === reqWord || tankLiq.includes(reqWord)));
                     }
 
+                    const reqHtml = reqList.map(req => {
+                        const reqNormalized = req.toLowerCase();
+                        const available = availableLiquids.some(tankLiq => tankLiq === reqNormalized || tankLiq.includes(reqNormalized));
+                        if (!canMake && !available) {
+                            return `<span class="missing-ingredient">${escapeHtml(req)}</span>`;
+                        }
+                        return `<span style="color:var(--muted);">${escapeHtml(req)}</span>`;
+                    }).join(', ');
+
                     return `
                     <div class="recipe-card ${canMake ? '' : 'disabled'}">
                         <div>
                             <h3 style="margin:0 0 8px; color:var(--primary);">${r.name}</h3>
                             <p class="muted" style="font-size:13px; margin:0 0 8px;">${r.description}</p>
-                            <p style="font-size:12px; color:var(--warning); margin:0 0 16px;"><strong>Requiere:</strong> ${r.ingredients}</p>
+                            <p style="font-size:12px; margin:0 0 16px;"><strong style="color:var(--muted);">Requiere:</strong> ${reqHtml || '<span style="color:var(--muted);">-</span>'}</p>
                         </div>
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span class="muted small" style="font-weight:bold;">+${r.xp_reward || 150} XP</span>
@@ -832,15 +947,16 @@ def dashboard_page():
             ev.preventDefault();
             const payload = {
                 username: document.getElementById('cu-username').value,
-                password_hash: document.getElementById('cu-password').value, 
+                full_name: document.getElementById('cu-fullname').value || document.getElementById('cu-username').value,
+                password: document.getElementById('cu-password').value,
                 role: document.getElementById('cu-role').value
             };
             try {
-                await apiPost("/api/auth/register", payload);
+                await apiPost("/api/admin/users/create", payload);
                 alert("Usuario creado con éxito");
                 ev.target.reset();
             } catch(e) {
-                alert("Error al crear usuario. Verifica si el backend soporta /api/auth/register");
+                alert("Error al crear usuario.");
             }
         }
 
@@ -1022,6 +1138,8 @@ def dashboard_page():
                     <td>${u.full_name || u.username}</td>
                     <td><span style="background:var(--primary); color:#000; padding:4px 8px; border-radius:12px; font-size:12px; font-weight:bold;">LVL ${u.level}</span></td>
                     <td><strong>${u.xp}</strong></td>
+                    <td><strong>${u.total_consumptions ?? 0}</strong></td>
+                    <td>${u.favorite_recipe_name || '-'}</td>
                 </tr>
                 `;
             }).join("");

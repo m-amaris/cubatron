@@ -1,13 +1,17 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
 from typing import List
+from datetime import datetime, timedelta
+from threading import Lock
+import re
 from app.database import get_session
 from app.models import MachineConfig, Tank, MachineEvent
 
 router = APIRouter()
 
 MACHINE_STATUS = "ONLINE"
+_STATUS_LOCK = Lock()
 
 class TankUpdate(BaseModel):
     id: int
@@ -20,9 +24,14 @@ def status(session: Session = Depends(get_session)):
     config = session.exec(select(MachineConfig)).first()
     tanks = session.exec(select(Tank)).all()
     
-    # Contamos todas las bebidas preparadas
-    events = session.exec(select(MachineEvent).where(MachineEvent.event_type == "drink_made")).all()
-    drinks_24h = len(events) 
+    cutoff = datetime.utcnow() - timedelta(hours=24)
+    events_24h = session.exec(
+        select(MachineEvent).where(
+            MachineEvent.event_type == "drink_made",
+            MachineEvent.created_at >= cutoff,
+        )
+    ).all()
+    drinks_24h = len(events_24h)
     
     tanks_out = []
     for t in tanks:
@@ -42,29 +51,39 @@ def status(session: Session = Depends(get_session)):
 @router.post("/tanks/update")
 def update_tanks(tanks_data: List[TankUpdate], session: Session = Depends(get_session)):
     global MACHINE_STATUS
-    MACHINE_STATUS = "BUSY" 
-    
-    for t_data in tanks_data:
-        tank = session.exec(select(Tank).where(Tank.id == t_data.id)).first()
-        if tank:
-            tank.name = t_data.name
-            tank.liquid_type = t_data.liquid_type 
-            
-            # El dato t_data.current_ml trae el % (ej: 80). Lo pasamos a mililitros reales para la BD.
-            capacity = tank.capacity_ml if getattr(tank, "capacity_ml", None) else 1000
-            tank.current_ml = int((t_data.current_ml / 100.0) * capacity)
-            
-            session.add(tank)
-    
-    session.commit()
-    MACHINE_STATUS = "ONLINE"
-    return {"message": "Depósitos actualizados"}
+    with _STATUS_LOCK:
+        MACHINE_STATUS = "BUSY"
+    try:
+        for t_data in tanks_data:
+            tank = session.exec(select(Tank).where(Tank.id == t_data.id)).first()
+            if tank:
+                tank.name = t_data.name
+                tank.liquid_type = t_data.liquid_type
+
+                # El dato t_data.current_ml trae el % (ej: 80). Lo pasamos a mililitros reales para la BD.
+                capacity = tank.capacity_ml if getattr(tank, "capacity_ml", None) else 1000
+                tank.current_ml = int((t_data.current_ml / 100.0) * capacity)
+
+                session.add(tank)
+
+        session.commit()
+        return {"message": "Depósitos actualizados"}
+    finally:
+        with _STATUS_LOCK:
+            MACHINE_STATUS = "ONLINE"
 
 @router.post("/action/{action_name}")
 def perform_action(action_name: str, session: Session = Depends(get_session)):
     global MACHINE_STATUS
-    MACHINE_STATUS = "BUSY"
-    session.add(MachineEvent(event_type=action_name, status="done", detail=f"Acción {action_name} ejecutada"))
-    session.commit()
-    MACHINE_STATUS = "ONLINE"
-    return {"ok": True, "message": f"{action_name.capitalize()} completado"}
+    if action_name not in {"prime", "clean"} and not re.fullmatch(r"purge_tank_\d+", action_name):
+        raise HTTPException(status_code=400, detail="Acción no permitida")
+
+    with _STATUS_LOCK:
+        MACHINE_STATUS = "BUSY"
+    try:
+        session.add(MachineEvent(event_type=action_name, status="done", detail=f"Acción {action_name} ejecutada"))
+        session.commit()
+        return {"ok": True, "message": f"{action_name.capitalize()} completado"}
+    finally:
+        with _STATUS_LOCK:
+            MACHINE_STATUS = "ONLINE"

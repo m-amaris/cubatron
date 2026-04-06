@@ -1,5 +1,7 @@
 from sqlmodel import Session, select
 import json
+import os
+import secrets
 from app.database import engine, create_db_and_tables
 from app.models import User, DrinkRecipe, MachineConfig, Tank
 from app.security import hash_password
@@ -7,17 +9,42 @@ from app.security import hash_password
 def seed():
     create_db_and_tables()
     with Session(engine) as session:
-        admin = session.exec(select(User).where(User.username == "miguel")).first()
-        if not admin:
+        bootstrap_user = os.getenv("CUBATRON_BOOTSTRAP_ADMIN_USER")
+        bootstrap_pass = os.getenv("CUBATRON_BOOTSTRAP_ADMIN_PASSWORD")
+
+        admin = (
+            session.exec(select(User).where(User.username == bootstrap_user)).first()
+            if bootstrap_user
+            else None
+        )
+        if bootstrap_user and bootstrap_pass and not admin:
             session.add(User(
-                username="miguel",
-                full_name="Miguel",
-                password_hash=hash_password("Cubatron2026!"),
+                username=bootstrap_user,
+                full_name=os.getenv("CUBATRON_BOOTSTRAP_ADMIN_FULLNAME", "Administrador"),
+                password_hash=hash_password(bootstrap_pass),
                 role="admin",
-                favorite_mix="Ron cola",
+                favorite_mix="",
                 xp=120,
                 level=3
             ))
+
+        if not bootstrap_user and not session.exec(select(User)).first():
+            generated_password = secrets.token_urlsafe(12)
+            session.add(
+                User(
+                    username="admin",
+                    full_name="Administrador",
+                    password_hash=hash_password(generated_password),
+                    role="admin",
+                    favorite_mix="",
+                    xp=120,
+                    level=3,
+                )
+            )
+            print(
+                "[CUBATRON] Usuario admin inicial creado: username=admin "
+                f"password={generated_password}"
+            )
 
         default_recipes = [
             {

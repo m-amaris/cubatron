@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from app.database import create_db_and_tables
 from app.seed import seed
 from app.routers import auth, users, drinks, machine, admin, web
 
@@ -10,7 +9,6 @@ app.mount("/static", StaticFiles(directory="/opt/cubatron/app/static"), name="st
 
 @app.on_event("startup")
 def startup():
-    create_db_and_tables()
     seed()
 
 app.include_router(web.router)

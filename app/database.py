@@ -65,6 +65,26 @@ def _run_sqlite_compat_migrations() -> None:
                 "serving_modes_json TEXT NOT NULL DEFAULT '{}'",
             )
 
+        if "user" in tables:
+            _sqlite_add_column_if_missing(
+                conn,
+                "user",
+                "theme_mode",
+                "theme_mode TEXT NOT NULL DEFAULT 'dark'",
+            )
+            _sqlite_add_column_if_missing(
+                conn,
+                "user",
+                "accent_color",
+                "accent_color TEXT NOT NULL DEFAULT 'emerald'",
+            )
+            _sqlite_add_column_if_missing(
+                conn,
+                "user",
+                "info",
+                "info TEXT NOT NULL DEFAULT ''",
+            )
+
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)

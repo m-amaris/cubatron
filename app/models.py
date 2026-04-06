@@ -10,8 +10,11 @@ class User(SQLModel, table=True):
     role: str = "user"
     avatar_url: Optional[str] = None
     favorite_mix: Optional[str] = None
+    info: str = ""
     xp: int = 0
     level: int = 1
+    theme_mode: str = "dark"
+    accent_color: str = "emerald"
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class DrinkRecipe(SQLModel, table=True):
