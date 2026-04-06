@@ -124,7 +124,7 @@ def dashboard_page():
         
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: var(--muted);}
-        .form-control { width: 100%; padding: 12px; background: var(--bg); color: white; border: 1px solid var(--border); border-radius: 8px; }
+        .form-control { width: 100%; padding: 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
         
         .btn { display:inline-block; background:var(--primary); color:#000; padding:12px 16px; border:none; border-radius:8px; font-weight:bold; cursor:pointer; text-align:center; transition:0.2s;}
         .btn:hover { background: var(--primary-hover); }
@@ -147,6 +147,12 @@ def dashboard_page():
         .recipe-card.disabled { opacity: 0.65; pointer-events: none; }
         .recipe-card.disabled .btn { display: none; }
         .missing-ingredient { color: var(--warning); font-weight: 700; }
+        .history-item { background: var(--surface-2); padding: 16px; border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+        .history-main { min-width: 0; flex: 1; }
+        .history-title { color: var(--text); font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
+        .history-time { font-size: 13px; color: var(--muted); margin-top: 4px; }
+        .history-side { text-align: right; flex-shrink: 0; }
+        .history-xp { background: color-mix(in srgb, var(--primary) 22%, transparent); color: var(--primary); padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 700; }
         
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: middle; }
@@ -168,6 +174,32 @@ def dashboard_page():
         .pick-item { border: 1px solid var(--border); background: var(--bg); border-radius: 10px; padding: 10px; cursor: pointer; text-align:center; }
         .pick-item.active { border-color: var(--primary); background: rgba(16, 185, 129, 0.12); }
         .pick-item .ico { font-size: 22px; display:block; margin-bottom: 6px; }
+                .table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+                #sb-info { overflow-wrap: anywhere; }
+
+                @media (max-width: 768px) {
+                        .sidebar { width: min(88vw, 320px); }
+                        .sidebar-header { padding: 20px 14px; }
+                        .main-content { padding: 12px; }
+                        .card { padding: 16px; margin-bottom: 16px; }
+                        .grid-2, .grid-3 { grid-template-columns: 1fr; gap: 12px; }
+                        .camera-feed { height: 220px; }
+                        .recipe-card > div:last-child { flex-wrap: wrap; gap: 8px; }
+                        .recipe-card > div:last-child .btn { width: 100%; }
+                        .history-item { flex-direction: column; align-items: stretch; }
+                        .history-side { width: 100%; display: flex; justify-content: space-between; align-items: center; text-align: left; }
+                        .table-wrap table { min-width: 760px; }
+                        #create-user-form { flex-direction: column; align-items: stretch !important; }
+                        #create-user-form .form-group,
+                        #create-user-form .form-group[style] { width: 100% !important; }
+                        #create-user-form button { width: 100%; }
+                        #add-recipe-form > div[style*="display:flex"] { flex-direction: column; }
+                        #add-recipe-form > div[style*="display:flex"] > * { width: 100% !important; }
+                        #profile-form .form-control { width: 100%; }
+                        #view-dashboard .card > div[style*="justify-content:space-between"] { flex-wrap: wrap; gap: 10px; }
+                        #view-dashboard .card > div[style*="justify-content:space-between"] > div[style*="text-align:right"] { width: 100%; }
+                        .modal-card { max-height: calc(100vh - 32px); overflow-y: auto; }
+                }
       </style>
     </head>
     <body>
@@ -229,7 +261,7 @@ def dashboard_page():
                         </div>
                         <div style="background:var(--surface-2); padding:12px 16px; border-radius:8px; border:1px solid var(--border);">
                             <p class="muted" style="margin:0; font-size:13px;">Consumiciones totales en 24h</p>
-                            <strong id="status-drinks" style="color:white; font-size:20px; display:block; text-align:right;">0</strong>
+                            <strong id="status-drinks" style="color:var(--text); font-size:20px; display:block; text-align:right;">0</strong>
                         </div>
                     </div>
                 </div>
@@ -366,10 +398,12 @@ def dashboard_page():
             <div id="view-ranking" class="view-section">
                 <div class="card">
                     <h2>Ranking Global</h2>
-                    <table>
-                        <thead><tr><th>FOTO</th><th>POS</th><th>USUARIO</th><th>NIVEL</th><th>XP</th><th>CONSUMICIONES</th><th>BEBIDA FAVORITA</th></tr></thead>
-                        <tbody id="ranking-list"></tbody>
-                    </table>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>FOTO</th><th>POS</th><th>USUARIO</th><th>NIVEL</th><th>XP</th><th>CONSUMICIONES</th><th>BEBIDA FAVORITA</th></tr></thead>
+                            <tbody id="ranking-list"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -714,16 +748,14 @@ def dashboard_page():
                 }
                 
                 list.innerHTML = history.map(h => `
-                    <div style="background:var(--surface-2); padding:16px; border-radius:8px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <strong style="color:white; font-size: 16px;">${h.name}</strong>
-                            ${h.time ? `<div style="font-size:13px; color:var(--muted); margin-top:4px;">🕒 ${h.time}</div>` : ''}
+                    <div class="history-item">
+                        <div class="history-main">
+                            <span class="history-title">${escapeHtml(h.name)}</span>
+                            ${h.time ? `<div class="history-time">🕒 ${escapeHtml(h.time)}</div>` : ''}
                         </div>
-                        <div style="text-align:right;">
+                        <div class="history-side">
                             <span style="font-size:12px; color:var(--muted); display:block; margin-bottom:4px;">Completado</span>
-                            <span style="background:rgba(16, 185, 129, 0.2); color:var(--primary); padding:4px 10px; border-radius:12px; font-size:13px; font-weight:bold;">
-                                +${h.xp} XP
-                            </span>
+                            <span class="history-xp">+${Number(h.xp || 0)} XP</span>
                         </div>
                     </div>
                 `).join('');
@@ -964,7 +996,7 @@ def dashboard_page():
             const list = document.getElementById('admin-liquids-list');
             list.innerHTML = (systemSettings.liquids || []).map((l, i) => `
                 <div style="display:flex; justify-content:space-between; padding:12px; background:var(--bg); border-radius:8px; margin-bottom:8px; border:1px solid var(--border);">
-                    <span><strong style="color:white;">${l.name}</strong> <span class="muted" style="margin-left:8px; font-size:12px;">(${l.type.toUpperCase()})</span></span>
+                    <span><strong style="color:var(--text);">${l.name}</strong> <span class="muted" style="margin-left:8px; font-size:12px;">(${l.type.toUpperCase()})</span></span>
                     <button class="btn btn-small btn-danger" onclick="deleteLiquid(${i})">X</button>
                 </div>
             `).join('');
@@ -1014,7 +1046,7 @@ def dashboard_page():
                     <div class="ingredient-tag" onclick="toggleIngredient('${l.name}')" 
                          style="border:1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}; 
                                 background:${isSelected ? 'var(--primary)' : 'var(--surface-2)'}; 
-                                color:${isSelected ? '#000' : 'white'};">
+                                color:${isSelected ? '#000' : 'var(--text)'};">
                         ${l.name} ${isSelected ? '✓' : '+'}
                     </div>
                 `;
