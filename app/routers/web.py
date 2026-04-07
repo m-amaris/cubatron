@@ -134,6 +134,11 @@ def dashboard_page():
 
         .status-indicator { display: inline-flex; align-items: center; gap: 8px; font-weight: bold; padding: 8px 16px; border-radius: 20px; background: var(--surface-2);}
         .status-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .status-indicator.compact { padding: 6px 12px; border-radius: 14px; font-size: 13px; gap: 6px; }
+        .status-indicator.compact .status-dot { width: 10px; height: 10px; }
+        .status-24h-box { background:var(--surface-2); padding:8px 12px; border-radius:8px; border:1px solid var(--border); min-width: 150px; }
+        .status-24h-label { margin:0; font-size:11px; color:var(--muted); line-height:1.2; }
+        .status-24h-value { color:var(--text); font-size:16px; display:block; text-align:right; line-height:1.1; }
         .status-ONLINE .status-dot { background: var(--primary); box-shadow: 0 0 8px var(--primary);}
         .status-BUSY .status-dot { background: var(--warning); box-shadow: 0 0 8px var(--warning); animation: pulse 1s infinite;}
         .status-OFFLINE .status-dot { background: var(--danger); }
@@ -148,15 +153,36 @@ def dashboard_page():
         .recipe-card.disabled .btn { display: none; }
         .missing-ingredient { color: var(--warning); font-weight: 700; }
         .history-item { background: var(--surface-2); padding: 16px; border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+        .history-user { display:flex; align-items:flex-start; gap:10px; min-width:0; }
+        .history-avatar { width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid var(--border); background:var(--bg); flex:0 0 auto; }
+        .history-avatar-fallback { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--bg); border:1px solid var(--border); font-size:15px; flex:0 0 auto; }
         .history-main { min-width: 0; flex: 1; }
         .history-title { color: var(--text); font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
         .history-time { font-size: 13px; color: var(--muted); margin-top: 4px; }
         .history-side { text-align: right; flex-shrink: 0; }
         .history-xp { background: color-mix(in srgb, var(--primary) 22%, transparent); color: var(--primary); padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 700; }
+        .history-toolbar { display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:12px; }
+        .history-toolbar .form-control { max-width: 320px; }
+        .history-pager { display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:10px; }
+        .history-pager .muted { font-size:12px; }
         
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: middle; }
         th { color: var(--muted); font-size: 14px;}
+        .ranking-table td { white-space: nowrap; }
+        .rank-user { max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rank-level-cell { min-width: 84px; }
+        .rank-level-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: #0b1220;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1;
+            white-space: nowrap;
+        }
         
         .avatar-img { width: 100%; height: 100%; object-fit: cover; }
         .ingredient-tag { padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.2s; }
@@ -174,6 +200,14 @@ def dashboard_page():
         .pick-item { border: 1px solid var(--border); background: var(--bg); border-radius: 10px; padding: 10px; cursor: pointer; text-align:center; }
         .pick-item.active { border-color: var(--primary); background: rgba(16, 185, 129, 0.12); }
         .pick-item .ico { font-size: 22px; display:block; margin-bottom: 6px; }
+        .glass-list { display:flex; flex-direction:column; gap:10px; }
+        .glass-card { display:flex; justify-content:space-between; gap:12px; padding:12px; background:var(--bg); border-radius:8px; border:1px solid var(--border); }
+        .glass-meta { font-size:12px; color:var(--muted); margin-top:4px; line-height:1.45; }
+        .serve-breakdown-row { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; background: var(--surface-2); border:1px solid var(--border); }
+        .serve-breakdown-bar { width:10px; height:10px; border-radius:50%; background:var(--primary); flex:0 0 auto; }
+        .serve-breakdown-text { flex:1; min-width:0; }
+        .serve-breakdown-text strong { display:block; color:var(--text); }
+        .serve-breakdown-text span { display:block; font-size:12px; color:var(--muted); }
                 .table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
                 #sb-info { overflow-wrap: anywhere; }
 
@@ -189,6 +223,10 @@ def dashboard_page():
                         .history-item { flex-direction: column; align-items: stretch; }
                         .history-side { width: 100%; display: flex; justify-content: space-between; align-items: center; text-align: left; }
                         .table-wrap table { min-width: 760px; }
+                        #view-ranking .table-wrap table { min-width: 680px; }
+                        .rank-user { max-width: 120px; }
+                        .rank-level-cell { min-width: 72px; }
+                        .rank-level-badge { padding: 3px 7px; font-size: 11px; }
                         #create-user-form { flex-direction: column; align-items: stretch !important; }
                         #create-user-form .form-group,
                         #create-user-form .form-group[style] { width: 100% !important; }
@@ -253,15 +291,15 @@ def dashboard_page():
             <div id="view-dashboard" class="view-section active">
                 
                 <!-- 1. Estado de la máquina (Ancho completo) -->
-                <div class="card" style="margin-bottom: 24px;">
+                <div class="card" style="margin-bottom: 16px; padding:16px 18px;">
                     <h2>Estado de la Máquina</h2>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div id="machine-status" class="status-indicator status-OFFLINE">
+                        <div id="machine-status" class="status-indicator compact status-OFFLINE">
                             <div class="status-dot"></div><span id="status-text">OFFLINE</span>
                         </div>
-                        <div style="background:var(--surface-2); padding:12px 16px; border-radius:8px; border:1px solid var(--border);">
-                            <p class="muted" style="margin:0; font-size:13px;">Consumiciones totales en 24h</p>
-                            <strong id="status-drinks" style="color:var(--text); font-size:20px; display:block; text-align:right;">0</strong>
+                        <div class="status-24h-box">
+                            <p class="status-24h-label">Consumiciones en 24h</p>
+                            <strong id="status-drinks" class="status-24h-value">0</strong>
                         </div>
                     </div>
                 </div>
@@ -274,9 +312,18 @@ def dashboard_page():
 
                 <!-- 3. Tus Últimas Consumiciones (Ancho completo) -->
                 <div class="card" style="margin-bottom: 24px;">
-                    <h2>Tus Últimas Consumiciones</h2>
-                    <div id="history-list" style="display:flex; flex-direction:column; gap:12px;">
+                    <h2>Últimas Consumiciones Realizadas</h2>
+                    <div class="history-toolbar">
+                        <input id="global-history-filter" type="text" class="form-control" placeholder="Filtrar por bebida o usuario">
+                        <button class="btn btn-small btn-secondary" onclick="applyGlobalHistoryFilter()">Filtrar</button>
+                    </div>
+                    <div id="global-history-list" style="display:flex; flex-direction:column; gap:12px;">
                         <p class="muted">Aún no has preparado nada.</p>
+                    </div>
+                    <div class="history-pager">
+                        <button class="btn btn-small btn-secondary" onclick="changeGlobalHistoryPage(-1)">Anterior</button>
+                        <span id="global-history-page" class="muted">Página 1 / 1</span>
+                        <button class="btn btn-small btn-secondary" onclick="changeGlobalHistoryPage(1)">Siguiente</button>
                     </div>
                 </div>
 
@@ -367,6 +414,32 @@ def dashboard_page():
                         </div>
                     </form>
                 </div>
+
+                <div class="card" style="margin-bottom:24px;">
+                    <h2>Gestión de Vasos</h2>
+                    <p class="muted" style="font-size:14px;">Crea, edita o elimina vasos con su nombre, icono y capacidad fija en mL.</p>
+                    <div id="admin-glasses-list" style="margin-bottom:16px;"></div>
+
+                    <form id="glass-form" onsubmit="saveGlass(event)" style="display:flex; flex-direction:column; gap:12px; background:var(--bg); padding:16px; border-radius:8px; border:1px solid var(--border);">
+                        <input type="hidden" id="gl-id" value="">
+                        <input type="hidden" id="gl-key" value="">
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <input type="text" id="gl-name" class="form-control" placeholder="Nombre (ej: Highball)" required style="flex:1; min-width:180px;" oninput="syncGlassKey()">
+                        </div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                            <input type="text" id="gl-icon" class="form-control" placeholder="Icono" value="🥤" required style="width:120px;">
+                            <input type="number" id="gl-capacity" class="form-control" placeholder="Capacidad mL" min="30" max="2000" required style="width:180px;" value="300">
+                            <label style="display:flex; align-items:center; gap:8px; color:var(--muted); font-size:13px;">
+                                <input type="checkbox" id="gl-enabled" checked>
+                                Habilitado
+                            </label>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button type="submit" id="gl-submit" class="btn">Añadir vaso</button>
+                            <button type="button" class="btn btn-secondary" onclick="resetGlassForm()">Cancelar edición</button>
+                        </div>
+                    </form>
+                </div>
                 
                 <div class="grid-2">
                     <div class="card">
@@ -399,8 +472,8 @@ def dashboard_page():
                 <div class="card">
                     <h2>Ranking Global</h2>
                     <div class="table-wrap">
-                        <table>
-                            <thead><tr><th>FOTO</th><th>POS</th><th>USUARIO</th><th>NIVEL</th><th>XP</th><th>CONSUMICIONES</th><th>BEBIDA FAVORITA</th></tr></thead>
+                        <table class="ranking-table">
+                            <thead><tr><th>FOTO</th><th>POS</th><th>USUARIO</th><th>NIVEL</th><th>XP</th><th>CONSUMICIONES</th><th>BEBIDA MAS CONSUMIDA</th></tr></thead>
                             <tbody id="ranking-list"></tbody>
                         </table>
                     </div>
@@ -459,6 +532,21 @@ def dashboard_page():
                         </form>
                     </div>
                 </div>
+                <div class="card" style="margin-top: 8px;">
+                    <h2>Tus Últimas Consumiciones</h2>
+                    <div class="history-toolbar">
+                        <input id="my-history-filter" type="text" class="form-control" placeholder="Filtrar por bebida">
+                        <button class="btn btn-small btn-secondary" onclick="applyMyHistoryFilter()">Filtrar</button>
+                    </div>
+                    <div id="my-history-list" style="display:flex; flex-direction:column; gap:12px;">
+                        <p class="muted">Aún no has preparado nada.</p>
+                    </div>
+                    <div class="history-pager">
+                        <button class="btn btn-small btn-secondary" onclick="changeMyHistoryPage(-1)">Anterior</button>
+                        <span id="my-history-page" class="muted">Página 1 / 1</span>
+                        <button class="btn btn-small btn-secondary" onclick="changeMyHistoryPage(1)">Siguiente</button>
+                    </div>
+                </div>
             </div>
 
         </div>
@@ -477,6 +565,9 @@ def dashboard_page():
 
             <label style="font-size:13px; color:var(--muted);">Modo de servido</label>
             <div id="serve-mode-picker" class="mode-picker"></div>
+            <p id="serve-ml-estimate" style="margin:8px 0 0; font-size:12px; color:var(--muted);"></p>
+            <p id="serve-xp-estimate" style="margin:4px 0 0; font-size:12px; color:var(--primary); font-weight:700;"></p>
+            <div id="serve-breakdown" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;"></div>
 
             <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
                 <button class="btn btn-secondary" onclick="closeServeModal()">Cancelar</button>
@@ -489,13 +580,14 @@ def dashboard_page():
         const tokenKey = "cubatron_token";
         let currentUser = null; let currentTanks = [];
         let systemSettings = { poll_status: 3000, poll_tanks: 10000, poll_history: 30000, liquids: [] };
-        const GLASS_CATALOG = {
+        const DEFAULT_GLASS_CATALOG = {
             highball: { label: "Highball", icon: "🥤" },
             rocks: { label: "Rocks", icon: "🥃" },
             coupe: { label: "Coupe", icon: "🍸" },
             hurricane: { label: "Hurricane", icon: "🍹" },
             shot: { label: "Shot", icon: "🧪" }
         };
+        const MODE_XP_MULTIPLIER = { low: 0.9, medium: 1.0, high: 1.2, extreme: 1.4 };
         const SERVE_MODES = ["low", "medium", "high", "extreme"];
         const ACCENT_PALETTE = {
             emerald: { primary: "#10b981", hover: "#059669" },
@@ -538,15 +630,60 @@ def dashboard_page():
                 .replaceAll("'", '&#39;');
         }
 
+        function formatRelativeTime(isoValue) {
+            if(!isoValue) return '';
+            const raw = String(isoValue).trim();
+            const hasTz = /(?:Z|[+-]\\d{2}:?\\d{2})$/i.test(raw);
+            const normalized = hasTz ? raw : `${raw}Z`;
+            const date = new Date(normalized);
+            if(Number.isNaN(date.getTime())) return String(isoValue);
+
+            const diffMs = date.getTime() - Date.now();
+            const absMs = Math.abs(diffMs);
+            const minute = 60 * 1000;
+            const hour = 60 * minute;
+            const day = 24 * hour;
+            const month = 30 * day;
+            const year = 365 * day;
+
+            let value = 0;
+            let unit = 'minute';
+
+            if(absMs < minute) {
+                return 'hace unos segundos';
+            } else if(absMs < hour) {
+                value = Math.round(diffMs / minute);
+                unit = 'minute';
+            } else if(absMs < day) {
+                value = Math.round(diffMs / hour);
+                unit = 'hour';
+            } else if(absMs < month) {
+                value = Math.round(diffMs / day);
+                unit = 'day';
+            } else if(absMs < year) {
+                value = Math.round(diffMs / month);
+                unit = 'month';
+            } else {
+                value = Math.round(diffMs / year);
+                unit = 'year';
+            }
+
+            return new Intl.RelativeTimeFormat('es', { numeric: 'auto' }).format(value, unit);
+        }
+
         let selectedIngredients = [];
         let selectedGlasses = ["highball"];
         let recipesCache = [];
         let adminRecipesCache = [];
+        let activeGlassesCache = [];
+        let adminGlassesCache = [];
         let tankSignature = "";
 
         let activeServeRecipe = null;
         let activeServeGlass = "highball";
         let activeServeMode = "medium";
+        const globalHistoryState = { page: 1, pageSize: 8, q: '' };
+        const myHistoryState = { page: 1, pageSize: 8, q: '' };
 
         function normalizeModeMap(rawModes, selected) {
             const safe = rawModes && typeof rawModes === 'object' ? rawModes : {};
@@ -562,14 +699,78 @@ def dashboard_page():
             return out;
         }
 
+        function slugifyGlassKey(value) {
+            return String(value || '')
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9_-]+/g, '-')
+                .replace(/-{2,}/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .slice(0, 32) || 'glass';
+        }
+
+        function getGlassCatalog() {
+            const source = activeGlassesCache.length > 0 ? activeGlassesCache : adminGlassesCache;
+            const catalog = {};
+            source.forEach(glass => {
+                catalog[glass.key] = glass;
+            });
+            if (Object.keys(catalog).length === 0) {
+                return DEFAULT_GLASS_CATALOG;
+            }
+            return catalog;
+        }
+
+        function getGlassInfo(glassKey) {
+            const catalog = getGlassCatalog();
+            const glass = catalog[glassKey];
+            if (glass) return glass;
+            return DEFAULT_GLASS_CATALOG[glassKey] || { key: glassKey, name: glassKey, icon: '🥤', capacity_ml: 300 };
+        }
+
+        function getRecipeGlassOptions(recipe) {
+            const availableKeys = new Set((activeGlassesCache.length > 0 ? activeGlassesCache : adminGlassesCache).filter(g => g.enabled !== false).map(g => g.key));
+            const fromRecipe = Array.isArray(recipe?.glass_options) ? recipe.glass_options : [];
+            const filtered = fromRecipe.filter(key => availableKeys.has(key));
+            if (filtered.length > 0) return filtered;
+            const fallback = Array.from(availableKeys);
+            return fallback.length > 0 ? fallback : Object.keys(DEFAULT_GLASS_CATALOG);
+        }
+
+        function computeServeXp(baseXp, capacityMl, modeKey) {
+            const glassMult = Math.max(0.6, Math.min(2.2, Number(capacityMl || 300) / 300));
+            const modeMult = MODE_XP_MULTIPLIER[modeKey] || 1.0;
+            return Math.max(1, Math.round(Number(baseXp || 0) * glassMult * modeMult));
+        }
+
+        function buildLiquidBreakdown(profile, totalMl) {
+            const entries = Object.entries(profile || {})
+                .map(([liq, rawPct]) => [String(liq), Math.max(0, Number(rawPct) || 0)]);
+            const pctSum = entries.reduce((sum, [, pct]) => sum + pct, 0);
+            if (entries.length === 0 || pctSum <= 0) return [];
+
+            let allocated = 0;
+            return entries.map(([liq, pct], index) => {
+                const ml = index === entries.length - 1
+                    ? Math.max(0, totalMl - allocated)
+                    : Math.round(totalMl * (pct / pctSum));
+                allocated += ml;
+                return { liquid: liq, pct: Number(pct.toFixed(2)), ml };
+            });
+        }
+
         function renderGlassSelector() {
             const container = document.getElementById('nr-glass-selector');
             if(!container) return;
-            const keys = Object.keys(GLASS_CATALOG);
+            const keys = getRecipeGlassOptions({ glass_options: activeGlassesCache.map(g => g.key) });
+            if(keys.length === 0) {
+                container.innerHTML = '<p style="margin:0; font-size:12px; color:var(--muted);">No hay vasos habilitados.</p>';
+                return;
+            }
             container.innerHTML = keys.map(k => {
-                const g = GLASS_CATALOG[k];
+                const g = getGlassInfo(k);
                 const selected = selectedGlasses.includes(k);
-                return `<div class="glass-tag" onclick="toggleGlass('${k}')" style="border-color:${selected ? 'var(--primary)' : 'var(--border)'}; background:${selected ? 'rgba(16, 185, 129, 0.18)' : 'var(--surface-2)'};">${g.icon} ${g.label} ${selected ? '✓' : '+'}</div>`;
+                return `<div class="glass-tag" onclick="toggleGlass('${k}')" style="border-color:${selected ? 'var(--primary)' : 'var(--border)'}; background:${selected ? 'rgba(16, 185, 129, 0.18)' : 'var(--surface-2)'};">${g.icon || '🥤'} ${g.name || g.label || k} ${selected ? '✓' : '+'}</div>`;
             }).join('');
         }
 
@@ -617,13 +818,72 @@ def dashboard_page():
             return recipesCache.find(r => Number(r.id) === Number(id));
         }
 
+        function computeServeMl(glassKey, modeKey) {
+            return Number(getGlassInfo(glassKey).capacity_ml || 300);
+        }
+
+        function updateServeEstimate() {
+            const estimateEl = document.getElementById('serve-ml-estimate');
+            const xpEl = document.getElementById('serve-xp-estimate');
+            const breakdownEl = document.getElementById('serve-breakdown');
+            if(!estimateEl || !xpEl || !breakdownEl || !activeServeRecipe) return;
+
+            const glass = getGlassInfo(activeServeGlass);
+            const totalMl = computeServeMl(activeServeGlass, activeServeMode);
+            const profile = activeServeRecipe.serving_modes?.[activeServeMode] || {};
+            const breakdown = buildLiquidBreakdown(profile, totalMl);
+            const xpValue = computeServeXp(activeServeRecipe.xp_reward, totalMl, activeServeMode);
+
+            estimateEl.innerText = `Vaso: ${glass.name || glass.label || activeServeGlass} · Capacidad fija: ${totalMl} ml`;
+            xpEl.innerText = `XP estimado: ${xpValue}`;
+            breakdownEl.innerHTML = breakdown.length > 0
+                ? breakdown.map(item => {
+                    const pctText = `${item.pct}%`;
+                    return `<div class="serve-breakdown-row"><div class="serve-breakdown-bar"></div><div class="serve-breakdown-text"><strong>${escapeHtml(item.liquid)}: ${item.ml} ml</strong><span>${pctText} del vaso</span></div></div>`;
+                }).join('')
+                : '<p style="margin:0; font-size:12px; color:var(--muted);">No hay perfil de servido para este modo.</p>';
+        }
+
+        function renderServePickers() {
+            if(!activeServeRecipe) return;
+            const recipe = activeServeRecipe;
+            const availableGlasses = getRecipeGlassOptions(recipe);
+            const modeKeys = Object.keys(recipe.serving_modes || {});
+            const toRenderModes = modeKeys.length > 0 ? modeKeys : SERVE_MODES;
+
+            const glassPicker = document.getElementById('serve-glass-picker');
+            if(!availableGlasses.length) {
+                glassPicker.innerHTML = '<p style="margin:0; font-size:12px; color:var(--muted);">No hay vasos disponibles.</p>';
+                document.getElementById('serve-mode-picker').innerHTML = '';
+                updateServeEstimate();
+                return;
+            }
+            glassPicker.innerHTML = availableGlasses.map(g => {
+                const info = getGlassInfo(g);
+                const baseMl = Number(info.capacity_ml || 300);
+                return `<div class="pick-item ${g === activeServeGlass ? 'active' : ''}" onclick="pickServeGlass('${g}')"><span class="ico">${info.icon || '🥤'}</span><strong>${info.name || info.label || g}</strong><div style="font-size:11px; color:var(--muted); margin-top:4px;">${baseMl} mL</div></div>`;
+            }).join('');
+
+            const modePicker = document.getElementById('serve-mode-picker');
+            modePicker.innerHTML = toRenderModes.map(m => {
+                const profile = recipe.serving_modes?.[m] || {};
+                const profileText = Object.entries(profile).map(([liq, pct]) => `${liq} ${pct}%`).join(' · ');
+                const totalMl = computeServeMl(activeServeGlass, m);
+                const xpValue = computeServeXp(recipe.xp_reward, totalMl, m);
+                return `<div class="pick-item ${m === activeServeMode ? 'active' : ''}" onclick="pickServeMode('${m}')"><strong style="text-transform:uppercase;">${m}</strong><div style="font-size:11px; color:var(--muted); margin-top:4px;">${totalMl} ml · ${xpValue} XP</div><div style="font-size:11px; color:var(--muted); margin-top:4px;">${profileText || 'Sin perfil'}</div></div>`;
+            }).join('');
+
+            updateServeEstimate();
+        }
+
         function resetRecipeForm() {
             const form = document.getElementById('add-recipe-form');
             form.reset();
             document.getElementById('nr-id').value = '';
             document.getElementById('nr-submit').innerText = 'Añadir Receta';
             selectedIngredients = [];
-            selectedGlasses = ['highball'];
+            selectedGlasses = getRecipeGlassOptions({ glass_options: [activeGlassesCache[0]?.key || 'highball'] }).slice(0, 1);
+            if(selectedGlasses.length === 0) selectedGlasses = ['highball'];
             renderIngredientSelector();
             renderGlassSelector();
             renderServingModesEditor();
@@ -643,6 +903,8 @@ def dashboard_page():
             
             if(viewId === 'ranking') loadRanking();
             if(viewId === 'admin') loadSettings();
+            if(viewId === 'dashboard') loadGlobalHistory();
+            if(viewId === 'profile') loadMyHistory();
         }
 
         function getToken() { return sessionStorage.getItem(tokenKey); }
@@ -651,11 +913,21 @@ def dashboard_page():
 
         async function apiGet(url) {
             const res = await fetch(url, { headers: authHeaders() });
+            if (res.status === 401) {
+                sessionStorage.removeItem(tokenKey);
+                window.location.href = "/";
+                throw new Error("unauthorized");
+            }
             if (!res.ok) throw new Error(res.status);
             return await res.json();
         }
         async function apiPost(url, body) {
             const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify(body) });
+            if (res.status === 401) {
+                sessionStorage.removeItem(tokenKey);
+                window.location.href = "/";
+                throw new Error("unauthorized");
+            }
             if (!res.ok) throw new Error(res.status);
             return await res.json();
         }
@@ -737,38 +1009,116 @@ def dashboard_page():
             } catch(e) { alert("Error actualizando contraseña"); }
         }
 
-        async function loadHistory() {
-            try {
-                const history = await apiGet("/api/users/me/drinks");
-                const list = document.getElementById("history-list");
-                
-                if(!history || history.length === 0) {
-                    list.innerHTML = '<p class="muted">Aún no has preparado nada.</p>';
-                    return;
-                }
-                
-                list.innerHTML = history.map(h => `
-                    <div class="history-item">
+        function renderHistoryCards(items, showUser = false) {
+            return items.map(h => `
+                <div class="history-item">
+                    <div class="history-user">
+                        ${h.avatar_url
+                            ? `<img src="${escapeHtml(h.avatar_url)}" class="history-avatar" alt="avatar">`
+                            : '<div class="history-avatar-fallback">U</div>'}
                         <div class="history-main">
                             <span class="history-title">${escapeHtml(h.name)}</span>
-                            ${h.time ? `<div class="history-time">🕒 ${escapeHtml(h.time)}</div>` : ''}
-                        </div>
-                        <div class="history-side">
-                            <span style="font-size:12px; color:var(--muted); display:block; margin-bottom:4px;">Completado</span>
-                            <span class="history-xp">+${Number(h.xp || 0)} XP</span>
+                            ${showUser ? `<div class="history-time">${escapeHtml(h.full_name || h.username || 'Usuario')}</div>` : ''}
+                            <div class="history-time">Vaso: ${escapeHtml(h.glass_type || '-')} · Modo: ${escapeHtml(h.serving_mode || '-')}</div>
+                            ${h.time ? `<div class="history-time" title="${escapeHtml(h.time)}">${escapeHtml(formatRelativeTime(h.time))}</div>` : ''}
                         </div>
                     </div>
-                `).join('');
+                    <div class="history-side">
+                        <span style="font-size:12px; color:var(--muted); display:block; margin-bottom:4px;">Completado</span>
+                        <span class="history-xp">+${Number(h.xp || 0)} XP</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateHistoryPager(labelId, state, payload) {
+            const page = Number(payload?.page || state.page || 1);
+            const totalPages = Number(payload?.total_pages || 0);
+            const safeTotalPages = totalPages > 0 ? totalPages : 1;
+            const label = document.getElementById(labelId);
+            if(label) label.innerText = `Página ${page} / ${safeTotalPages}`;
+            state.page = page;
+        }
+
+        async function loadGlobalHistory(resetPage = false) {
+            try {
+                if(resetPage) globalHistoryState.page = 1;
+                const query = new URLSearchParams({
+                    scope: 'all',
+                    page: String(globalHistoryState.page),
+                    page_size: String(globalHistoryState.pageSize),
+                    q: globalHistoryState.q,
+                });
+                const payload = await apiGet(`/api/users/history?${query.toString()}`);
+                const list = document.getElementById('global-history-list');
+                const items = payload?.items || [];
+                if(!list) return;
+                if(items.length === 0) {
+                    list.innerHTML = '<p class="muted">No hay consumiciones registradas.</p>';
+                    updateHistoryPager('global-history-page', globalHistoryState, payload);
+                    return;
+                }
+                list.innerHTML = renderHistoryCards(items, true);
+                updateHistoryPager('global-history-page', globalHistoryState, payload);
             } catch(e) {
-                console.error("Error cargando historial", e);
+                console.error('Error cargando historial global', e);
             }
+        }
+
+        async function loadMyHistory(resetPage = false) {
+            try {
+                if(resetPage) myHistoryState.page = 1;
+                const query = new URLSearchParams({
+                    scope: 'me',
+                    page: String(myHistoryState.page),
+                    page_size: String(myHistoryState.pageSize),
+                    q: myHistoryState.q,
+                });
+                const payload = await apiGet(`/api/users/history?${query.toString()}`);
+                const list = document.getElementById('my-history-list');
+                const items = payload?.items || [];
+                if(!list) return;
+                if(items.length === 0) {
+                    list.innerHTML = '<p class="muted">Aún no has preparado nada.</p>';
+                    updateHistoryPager('my-history-page', myHistoryState, payload);
+                    return;
+                }
+                list.innerHTML = renderHistoryCards(items, false);
+                updateHistoryPager('my-history-page', myHistoryState, payload);
+            } catch(e) {
+                console.error('Error cargando historial personal', e);
+            }
+        }
+
+        function applyGlobalHistoryFilter() {
+            globalHistoryState.q = (document.getElementById('global-history-filter')?.value || '').trim();
+            loadGlobalHistory(true);
+        }
+
+        function changeGlobalHistoryPage(delta) {
+            const nextPage = Math.max(1, Number(globalHistoryState.page) + Number(delta || 0));
+            if(nextPage === globalHistoryState.page) return;
+            globalHistoryState.page = nextPage;
+            loadGlobalHistory();
+        }
+
+        function applyMyHistoryFilter() {
+            myHistoryState.q = (document.getElementById('my-history-filter')?.value || '').trim();
+            loadMyHistory(true);
+        }
+
+        function changeMyHistoryPage(delta) {
+            const nextPage = Math.max(1, Number(myHistoryState.page) + Number(delta || 0));
+            if(nextPage === myHistoryState.page) return;
+            myHistoryState.page = nextPage;
+            loadMyHistory();
         }
 
         // System & Tanks
         async function pollMachineStatus() {
             try {
                 const data = await apiGet("/api/machine/status");
-                document.getElementById("machine-status").className = `status-indicator status-${data.status}`;
+                document.getElementById("machine-status").className = `status-indicator compact status-${data.status}`;
                 document.getElementById("status-text").innerText = data.status;
                 
                 if(data.drinks_24h !== undefined) {
@@ -852,6 +1202,34 @@ def dashboard_page():
             pollMachineStatus();
         }
 
+        async function loadActiveGlasses() {
+            try {
+                const glasses = await apiGet('/api/drinks/glasses');
+                activeGlassesCache = glasses || [];
+            } catch(e) {
+                activeGlassesCache = [];
+            }
+
+            if(selectedGlasses.length === 0 || !selectedGlasses.some(key => activeGlassesCache.some(g => g.key === key))) {
+                selectedGlasses = activeGlassesCache.length > 0 ? [activeGlassesCache[0].key] : ['highball'];
+            }
+
+            renderGlassSelector();
+            if(activeServeRecipe) renderServePickers();
+        }
+
+        async function loadAdminGlasses() {
+            try {
+                const glasses = await apiGet('/api/admin/glasses');
+                adminGlassesCache = glasses || [];
+            } catch(e) {
+                adminGlassesCache = [];
+            }
+            renderAdminGlasses();
+            renderGlassSelector();
+            if(activeServeRecipe) renderServePickers();
+        }
+
         // Recipes & Making Drinks
         async function loadRecipes() {
             try {
@@ -887,8 +1265,7 @@ def dashboard_page():
                             <p class="muted" style="font-size:13px; margin:0 0 8px;">${r.description}</p>
                             <p style="font-size:12px; margin:0 0 16px;"><strong style="color:var(--muted);">Requiere:</strong> ${reqHtml || '<span style="color:var(--muted);">-</span>'}</p>
                         </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span class="muted small" style="font-weight:bold;">+${r.xp_reward || 150} XP</span>
+                        <div style="display:flex; justify-content:flex-end; align-items:center;">
                             <button class="btn" onclick="openServeModal(${r.id})">${canMake ? 'Preparar' : 'Faltan líquidos'}</button>
                         </div>
                     </div>
@@ -902,44 +1279,27 @@ def dashboard_page():
             if(!recipe) return;
 
             activeServeRecipe = recipe;
-            const availableGlasses = (recipe.glass_options && recipe.glass_options.length > 0) ? recipe.glass_options : ['highball'];
+            const availableGlasses = getRecipeGlassOptions(recipe);
             const modeKeys = Object.keys(recipe.serving_modes || {});
 
-            activeServeGlass = availableGlasses[0];
+            activeServeGlass = availableGlasses[0] || activeGlassesCache[0]?.key || 'highball';
             activeServeMode = modeKeys.includes('medium') ? 'medium' : (modeKeys[0] || 'medium');
 
             document.getElementById('serve-title').innerText = `Preparar ${recipe.name}`;
             document.getElementById('serve-desc').innerText = recipe.description || 'Selecciona vaso y modo de servicio.';
-
-            const glassPicker = document.getElementById('serve-glass-picker');
-            glassPicker.innerHTML = availableGlasses.map(g => {
-                const info = GLASS_CATALOG[g] || { label: g, icon: '🥤' };
-                return `<div class="pick-item ${g === activeServeGlass ? 'active' : ''}" onclick="pickServeGlass('${g}')"><span class="ico">${info.icon}</span><strong>${info.label}</strong></div>`;
-            }).join('');
-
-            const modePicker = document.getElementById('serve-mode-picker');
-            const toRenderModes = modeKeys.length > 0 ? modeKeys : SERVE_MODES;
-            modePicker.innerHTML = toRenderModes.map(m => {
-                const profile = recipe.serving_modes?.[m] || {};
-                const text = Object.entries(profile).map(([liq, pct]) => `${liq} ${pct}%`).join(' · ');
-                return `<div class="pick-item ${m === activeServeMode ? 'active' : ''}" onclick="pickServeMode('${m}')"><strong style="text-transform:uppercase;">${m}</strong><div style="font-size:11px; color:var(--muted); margin-top:4px;">${text || 'Sin perfil'}</div></div>`;
-            }).join('');
+            renderServePickers();
 
             document.getElementById('serve-modal').classList.add('open');
         }
 
         function pickServeGlass(glassKey) {
             activeServeGlass = glassKey;
-            document.querySelectorAll('#serve-glass-picker .pick-item').forEach(el => el.classList.remove('active'));
-            const target = Array.from(document.querySelectorAll('#serve-glass-picker .pick-item')).find(el => el.getAttribute('onclick')?.includes(`'${glassKey}'`));
-            if(target) target.classList.add('active');
+            renderServePickers();
         }
 
         function pickServeMode(mode) {
             activeServeMode = mode;
-            document.querySelectorAll('#serve-mode-picker .pick-item').forEach(el => el.classList.remove('active'));
-            const target = Array.from(document.querySelectorAll('#serve-mode-picker .pick-item')).find(el => el.getAttribute('onclick')?.includes(`'${mode}'`));
-            if(target) target.classList.add('active');
+            renderServePickers();
         }
 
         function closeServeModal(ev = null) {
@@ -957,9 +1317,11 @@ def dashboard_page():
         async function makeDrink(id, servingMode = 'medium', glassType = 'highball') {
             try {
                 const res = await apiPost("/api/drinks/make", { recipe_id: id, serving_mode: servingMode, glass_type: glassType });
-                alert(`¡Bebida en marcha! 🍹\nHas ganado ${res.xp_earned} XP`);
+                const mlInfo = res.total_ml ? `\nVolumen: ${res.total_ml} ml` : '';
+                alert(`¡Bebida en marcha! 🍹\nHas ganado ${res.xp_earned} XP${mlInfo}`);
                 await loadProfile();
-                await loadHistory();
+                await loadGlobalHistory();
+                await loadMyHistory();
             } catch(e) { alert("Error al preparar la bebida."); }
         }
 
@@ -971,6 +1333,7 @@ def dashboard_page():
             renderIngredientSelector();
             renderGlassSelector();
             renderServingModesEditor();
+            await loadAdminGlasses();
             loadAdminRecipes(); 
         }
 
@@ -1000,6 +1363,108 @@ def dashboard_page():
                     <button class="btn btn-small btn-danger" onclick="deleteLiquid(${i})">X</button>
                 </div>
             `).join('');
+        }
+
+        function renderAdminGlasses() {
+            const list = document.getElementById('admin-glasses-list');
+            if(!list) return;
+
+            if(!adminGlassesCache || adminGlassesCache.length === 0) {
+                list.innerHTML = '<p class="muted" style="margin:0;">No hay vasos configurados.</p>';
+                return;
+            }
+
+            list.innerHTML = adminGlassesCache.map(glass => {
+                const state = glass.enabled ? 'Habilitado' : 'Deshabilitado';
+                return `
+                    <div class="glass-card" style="align-items:flex-start;">
+                        <div style="display:flex; gap:12px; align-items:flex-start; min-width:0;">
+                            <div style="font-size:26px; line-height:1;">${escapeHtml(glass.icon || '🥤')}</div>
+                            <div style="min-width:0;">
+                                <strong style="color:var(--text);">${escapeHtml(glass.name || glass.key)}</strong>
+                                <div class="glass-meta">Clave: ${escapeHtml(glass.key)} · ${Number(glass.capacity_ml || 0)} mL · ${state}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px; flex-shrink:0;">
+                            <button class="btn btn-small btn-secondary" onclick="editGlass(${glass.id})">Editar</button>
+                            <button class="btn btn-small btn-danger" onclick="deleteGlass(${glass.id})">X</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function syncGlassKey() {
+            const keyInput = document.getElementById('gl-key');
+            const nameInput = document.getElementById('gl-name');
+            if(!keyInput || !nameInput) return;
+            keyInput.value = slugifyGlassKey(nameInput.value);
+        }
+
+        function resetGlassForm() {
+            const form = document.getElementById('glass-form');
+            if(form) form.reset();
+            document.getElementById('gl-id').value = '';
+            document.getElementById('gl-key').value = '';
+            document.getElementById('gl-name').value = '';
+            document.getElementById('gl-icon').value = '🥤';
+            document.getElementById('gl-capacity').value = 300;
+            document.getElementById('gl-enabled').checked = true;
+            document.getElementById('gl-submit').innerText = 'Añadir vaso';
+        }
+
+        function editGlass(id) {
+            const glass = (adminGlassesCache || []).find(g => Number(g.id) === Number(id));
+            if(!glass) return;
+
+            document.getElementById('gl-id').value = glass.id;
+            document.getElementById('gl-key').value = glass.key || '';
+            document.getElementById('gl-name').value = glass.name || '';
+            document.getElementById('gl-icon').value = glass.icon || '🥤';
+            document.getElementById('gl-capacity').value = glass.capacity_ml || 300;
+            document.getElementById('gl-enabled').checked = glass.enabled !== false;
+            document.getElementById('gl-submit').innerText = 'Guardar vaso';
+            document.getElementById('glass-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        async function saveGlass(ev) {
+            ev.preventDefault();
+            const glassId = parseInt(document.getElementById('gl-id').value || '0');
+            const payload = {
+                name: document.getElementById('gl-name').value,
+                icon: document.getElementById('gl-icon').value || '🥤',
+                capacity_ml: parseInt(document.getElementById('gl-capacity').value || '300'),
+                enabled: document.getElementById('gl-enabled').checked,
+            };
+
+            try {
+                if(glassId > 0) {
+                    await apiPost(`/api/admin/glasses/${glassId}`, payload);
+                } else {
+                    await apiPost('/api/admin/glasses/create', { ...payload, key: document.getElementById('gl-key').value || slugifyGlassKey(payload.name) });
+                }
+                resetGlassForm();
+                await loadAdminGlasses();
+                await loadActiveGlasses();
+                await loadRecipes();
+            } catch(e) {
+                alert('Error al guardar el vaso.');
+            }
+        }
+
+        async function deleteGlass(id) {
+            if(!confirm('¿Eliminar este vaso? Se retirará de las recetas donde aparezca.')) return;
+            try {
+                await fetch(`/api/admin/glasses/${id}`, { method: 'DELETE', headers: authHeaders() });
+                if(Number(document.getElementById('gl-id').value || '0') === Number(id)) {
+                    resetGlassForm();
+                }
+                await loadAdminGlasses();
+                await loadActiveGlasses();
+                await loadRecipes();
+            } catch(e) {
+                alert('Error al eliminar el vaso.');
+            }
         }
 
         async function addLiquid() {
@@ -1105,7 +1570,7 @@ def dashboard_page():
                     return `
                     <div style="display:flex; justify-content:space-between; padding:12px; background:var(--bg); border-radius:8px; margin-bottom:8px; border:1px solid var(--border);">
                         <div>
-                            <strong style="color:var(--primary);">${r.name}</strong> <span class="muted" style="font-size:12px;">(${r.xp_reward} XP)</span><br>
+                            <strong style="color:var(--primary);">${r.name}</strong><br>
                             <span style="font-size:13px; color:var(--muted);">Reqs: ${r.ingredients}</span><br>
                             <span style="font-size:12px; color:var(--muted);">Vasos: ${glasses}</span><br>
                             <span style="font-size:12px; color:var(--muted);">Modos: ${modes}</span>
@@ -1134,9 +1599,11 @@ def dashboard_page():
                 .map(s => s.trim())
                 .filter(Boolean);
 
+            const availableGlasses = getRecipeGlassOptions(recipe);
             selectedGlasses = (recipe.glass_options && recipe.glass_options.length > 0)
-                ? recipe.glass_options.slice()
-                : ['highball'];
+                ? recipe.glass_options.filter(key => availableGlasses.includes(key))
+                : availableGlasses.slice(0, 1);
+            if(selectedGlasses.length === 0) selectedGlasses = availableGlasses.slice(0, 1);
 
             renderIngredientSelector();
             renderGlassSelector();
@@ -1167,11 +1634,11 @@ def dashboard_page():
                 <tr>
                     <td style="width:50px;">${avatar}</td>
                     <td><strong>#${i+1}</strong></td>
-                    <td>${u.full_name || u.username}</td>
-                    <td><span style="background:var(--primary); color:#000; padding:4px 8px; border-radius:12px; font-size:12px; font-weight:bold;">LVL ${u.level}</span></td>
+                    <td class="rank-user" title="${u.full_name || u.username}">${u.full_name || u.username}</td>
+                    <td class="rank-level-cell"><span class="rank-level-badge">LVL ${u.level}</span></td>
                     <td><strong>${u.xp}</strong></td>
                     <td><strong>${u.total_consumptions ?? 0}</strong></td>
-                    <td>${u.favorite_recipe_name || '-'}</td>
+                    <td>${u.most_consumed_recipe_name || u.favorite_recipe_name || '-'}</td>
                 </tr>
                 `;
             }).join("");
@@ -1181,14 +1648,22 @@ def dashboard_page():
         async function init() {
             if (!getToken()) { window.location.href = "/"; return; }
             try { systemSettings = await apiGet("/api/admin/settings"); } catch(e) {}
-            
-            await loadProfile();
-            await pollMachineStatus(); 
-            await loadRecipes();
-            await loadHistory();
-            
-            setInterval(pollMachineStatus, systemSettings.poll_status || 3000);
-            setInterval(() => { if(!document.querySelector('select:focus')) renderTanks(); }, systemSettings.poll_tanks || 10000);
+
+            try {
+                await loadProfile();
+                await loadActiveGlasses();
+                await pollMachineStatus(); 
+                await loadRecipes();
+                await loadGlobalHistory();
+                await loadMyHistory();
+
+                setInterval(pollMachineStatus, systemSettings.poll_status || 3000);
+                setInterval(() => { if(!document.querySelector('select:focus')) renderTanks(); }, systemSettings.poll_tanks || 10000);
+            } catch (e) {
+                if (String(e) !== 'Error: unauthorized') {
+                    console.error('Error iniciando dashboard', e);
+                }
+            }
         }
 
         window.onload = init;

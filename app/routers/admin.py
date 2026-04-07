@@ -3,8 +3,9 @@ from pydantic import BaseModel, Field, constr
 from sqlmodel import Session, select
 from typing import Optional
 import json
+import re
 from app.database import get_session
-from app.models import User, Tank, DrinkRecipe, MachineEvent
+from app.models import User, Tank, DrinkRecipe, MachineEvent, GlassType
 from app.security import hash_password
 from app.dependencies import require_admin
 
@@ -58,6 +59,28 @@ class RecipeUpdate(BaseModel):
     serving_modes: dict[str, dict[str, float]] = Field(default_factory=dict)
 
 
+class GlassCreate(BaseModel):
+    key: Optional[constr(min_length=1, max_length=32, pattern=r"^[a-z0-9_-]+$")] = None
+    name: constr(min_length=1, max_length=40)
+    icon: constr(min_length=1, max_length=8) = "🥤"
+    capacity_ml: int = Field(ge=30, le=2000)
+    enabled: bool = True
+
+
+class GlassUpdate(BaseModel):
+    name: constr(min_length=1, max_length=40)
+    icon: constr(min_length=1, max_length=8) = "🥤"
+    capacity_ml: int = Field(ge=30, le=2000)
+    enabled: bool = True
+
+
+def _slugify_glass_key(value: str) -> str:
+    normalized = (value or "").strip().lower()
+    normalized = re.sub(r"[^a-z0-9_-]+", "-", normalized)
+    normalized = re.sub(r"-{2,}", "-", normalized).strip("-")
+    return normalized[:32] or "glass"
+
+
 def _safe_load_json(value: str, fallback):
     try:
         loaded = json.loads(value or "")
@@ -70,6 +93,12 @@ def _recipe_out(recipe: DrinkRecipe) -> dict:
     out = recipe.model_dump() if hasattr(recipe, "model_dump") else recipe.dict()
     out["glass_options"] = _safe_load_json(getattr(recipe, "glass_options_json", "[]"), [])
     out["serving_modes"] = _safe_load_json(getattr(recipe, "serving_modes_json", "{}"), {})
+    return out
+
+
+def _glass_out(glass: GlassType) -> dict:
+    out = glass.model_dump() if hasattr(glass, "model_dump") else glass.dict()
+    out["capacity_ml"] = int(out.get("capacity_ml", 300))
     return out
 
 @router.get("/overview")
@@ -170,3 +199,75 @@ def delete_recipe(
         session.delete(recipe)
         session.commit()
     return {"message": "Receta eliminada"}
+
+
+@router.get("/glasses")
+def get_glasses(session: Session = Depends(get_session), admin: User = Depends(require_admin)):
+    glasses = session.exec(select(GlassType).order_by(GlassType.name.asc())).all()
+    return [_glass_out(g) for g in glasses]
+
+
+@router.post("/glasses/create")
+def create_glass(
+    data: GlassCreate,
+    session: Session = Depends(get_session),
+    admin: User = Depends(require_admin),
+):
+    key = data.key or _slugify_glass_key(data.name)
+    exists = session.exec(select(GlassType).where(GlassType.key == key)).first()
+    if exists:
+        raise HTTPException(status_code=400, detail="Ya existe un vaso con esa clave")
+    glass = GlassType(
+        key=key,
+        name=data.name,
+        icon=data.icon,
+        capacity_ml=data.capacity_ml,
+        enabled=data.enabled,
+    )
+    session.add(glass)
+    session.commit()
+    session.refresh(glass)
+    return {"message": "Vaso creado", "glass": _glass_out(glass)}
+
+
+@router.post("/glasses/{glass_id}")
+def update_glass(
+    glass_id: int,
+    data: GlassUpdate,
+    session: Session = Depends(get_session),
+    admin: User = Depends(require_admin),
+):
+    glass = session.exec(select(GlassType).where(GlassType.id == glass_id)).first()
+    if not glass:
+        raise HTTPException(status_code=404, detail="Vaso no encontrado")
+
+    glass.name = data.name
+    glass.icon = data.icon
+    glass.capacity_ml = data.capacity_ml
+    glass.enabled = data.enabled
+    session.add(glass)
+    session.commit()
+    session.refresh(glass)
+    return {"message": "Vaso actualizado", "glass": _glass_out(glass)}
+
+
+@router.delete("/glasses/{glass_id}")
+def delete_glass(
+    glass_id: int,
+    session: Session = Depends(get_session),
+    admin: User = Depends(require_admin),
+):
+    glass = session.exec(select(GlassType).where(GlassType.id == glass_id)).first()
+    if not glass:
+        raise HTTPException(status_code=404, detail="Vaso no encontrado")
+
+    for recipe in session.exec(select(DrinkRecipe)).all():
+        options = _safe_load_json(getattr(recipe, "glass_options_json", "[]"), [])
+        if not isinstance(options, list) or glass.key not in options:
+            continue
+        recipe.glass_options_json = json.dumps([key for key in options if key != glass.key], ensure_ascii=True)
+        session.add(recipe)
+
+    session.delete(glass)
+    session.commit()
+    return {"message": "Vaso eliminado"}

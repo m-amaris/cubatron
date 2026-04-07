@@ -3,7 +3,7 @@ import json
 import os
 import secrets
 from app.database import engine, create_db_and_tables
-from app.models import User, DrinkRecipe, MachineConfig, Tank
+from app.models import User, DrinkRecipe, MachineConfig, Tank, GlassType
 from app.security import hash_password
 
 def seed():
@@ -24,8 +24,8 @@ def seed():
                 password_hash=hash_password(bootstrap_pass),
                 role="admin",
                 favorite_mix="",
-                xp=120,
-                level=3
+                xp=0,
+                level=1
             ))
 
         if not bootstrap_user and not session.exec(select(User)).first():
@@ -37,8 +37,8 @@ def seed():
                     password_hash=hash_password(generated_password),
                     role="admin",
                     favorite_mix="",
-                    xp=120,
-                    level=3,
+                    xp=0,
+                    level=1,
                 )
             )
             print(
@@ -98,6 +98,27 @@ def seed():
             if not recipe.xp_reward:
                 recipe.xp_reward = defaults["xp_reward"]
             session.add(recipe)
+
+        default_glasses = [
+            {"key": "shot", "name": "Shot", "icon": "🧪", "capacity_ml": 60, "enabled": True},
+            {"key": "rocks", "name": "Rocks", "icon": "🥃", "capacity_ml": 180, "enabled": True},
+            {"key": "coupe", "name": "Coupe", "icon": "🍸", "capacity_ml": 200, "enabled": True},
+            {"key": "highball", "name": "Highball", "icon": "🥤", "capacity_ml": 300, "enabled": True},
+            {"key": "hurricane", "name": "Hurricane", "icon": "🍹", "capacity_ml": 420, "enabled": True},
+        ]
+
+        for defaults in default_glasses:
+            glass = session.exec(select(GlassType).where(GlassType.key == defaults["key"])).first()
+            if not glass:
+                session.add(GlassType(**defaults))
+                continue
+            changed = False
+            for field in ("name", "icon", "capacity_ml"):
+                if getattr(glass, field) in (None, "", 0):
+                    setattr(glass, field, defaults[field])
+                    changed = True
+            if changed:
+                session.add(glass)
 
         if not session.exec(select(MachineConfig)).first():
             session.add(MachineConfig())

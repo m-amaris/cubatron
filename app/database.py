@@ -85,6 +85,20 @@ def _run_sqlite_compat_migrations() -> None:
                 "info TEXT NOT NULL DEFAULT ''",
             )
 
+        if "dispense" in tables:
+            _sqlite_add_column_if_missing(
+                conn,
+                "dispense",
+                "glass_type",
+                "glass_type TEXT",
+            )
+            _sqlite_add_column_if_missing(
+                conn,
+                "dispense",
+                "serving_mode",
+                "serving_mode TEXT",
+            )
+
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)

@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from sqlmodel import Session, select
 import os
 import uuid
+from datetime import timezone
 from typing import Optional
 from app.database import get_session
 from app.models import User, Dispense, DrinkRecipe
@@ -31,33 +32,91 @@ def me(user: User = Depends(get_current_user)):
 
 @router.get("/me/drinks")
 def get_my_drinks(session: Session = Depends(get_session), user: User = Depends(get_current_user)):
-    dispenses = session.exec(
-        select(Dispense)
-        .where(Dispense.user_id == user.id)
-        .order_by(Dispense.created_at.desc())
-        .limit(5)
-    ).all()
+    data = get_history(
+        scope="me",
+        page=1,
+        page_size=5,
+        q="",
+        session=session,
+        user=user,
+    )
+    return data["items"]
 
-    recipe_ids = [d.recipe_id for d in dispenses]
-    recipes_by_id: dict[int, DrinkRecipe] = {}
-    if recipe_ids:
-        recipes = session.exec(
-            select(DrinkRecipe).where(DrinkRecipe.id.in_(recipe_ids))
-        ).all()
-        recipes_by_id = {r.id: r for r in recipes if r.id is not None}
 
-    history = []
-    for d in reversed(dispenses):
-        recipe = recipes_by_id.get(d.recipe_id)
-        history.append(
+@router.get("/history")
+def get_history(
+    scope: str = Query(default="all", pattern="^(all|me)$"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=50),
+    q: str = Query(default="", max_length=80),
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    base_query = select(Dispense).order_by(Dispense.created_at.desc())
+    if scope == "me":
+        base_query = base_query.where(Dispense.user_id == user.id)
+
+    dispenses = session.exec(base_query).all()
+    if not dispenses:
+        return {
+            "items": [],
+            "page": page,
+            "page_size": page_size,
+            "total": 0,
+            "total_pages": 0,
+        }
+
+    recipe_ids = list({d.recipe_id for d in dispenses})
+    user_ids = list({d.user_id for d in dispenses})
+
+    recipes = session.exec(select(DrinkRecipe).where(DrinkRecipe.id.in_(recipe_ids))).all() if recipe_ids else []
+    users = session.exec(select(User).where(User.id.in_(user_ids))).all() if user_ids else []
+
+    recipe_name_by_id = {r.id: r.name for r in recipes if r.id is not None}
+    user_by_id = {u.id: u for u in users if u.id is not None}
+
+    rows = []
+    for d in dispenses:
+        owner = user_by_id.get(d.user_id)
+        recipe_name = recipe_name_by_id.get(d.recipe_id, f"Receta #{d.recipe_id}")
+        rows.append(
             {
-                "name": recipe.name if recipe else f"Receta #{d.recipe_id}",
+                "name": recipe_name,
                 "xp": d.xp_earned,
-                "time": d.created_at.isoformat() if d.created_at else None,
+                "time": d.created_at.replace(tzinfo=timezone.utc).isoformat().replace("+00:00", "Z") if d.created_at else None,
+                "username": owner.username if owner else f"user-{d.user_id}",
+                "full_name": owner.full_name if owner else f"Usuario #{d.user_id}",
+                "avatar_url": owner.avatar_url if owner else None,
+                "glass_type": d.glass_type,
+                "serving_mode": d.serving_mode,
             }
         )
 
-    return history
+    needle = (q or "").strip().lower()
+    if needle:
+        rows = [
+            row
+            for row in rows
+            if needle in (row.get("name") or "").lower()
+            or needle in (row.get("username") or "").lower()
+            or needle in (row.get("full_name") or "").lower()
+            or needle in (row.get("glass_type") or "").lower()
+            or needle in (row.get("serving_mode") or "").lower()
+        ]
+
+    total = len(rows)
+    total_pages = (total + page_size - 1) // page_size if total else 0
+    safe_page = min(page, total_pages) if total_pages else 1
+    start = (safe_page - 1) * page_size
+    end = start + page_size
+
+    return {
+        "items": rows[start:end],
+        "page": safe_page,
+        "page_size": page_size,
+        "total": total,
+        "total_pages": total_pages,
+    }
 
 @router.post("/me/update")
 def update_profile(
@@ -151,14 +210,14 @@ def get_ranking(session: Session = Depends(get_session), user: User = Depends(ge
         uid = u.id
         total = total_by_user.get(uid, 0)
 
-        favorite_recipe_name = "-"
+        most_consumed_recipe_name = "-"
         per_user_recipe_count = recipe_count_by_user.get(uid, {})
         if per_user_recipe_count:
-            favorite_recipe_id = max(
+            most_consumed_recipe_id = max(
                 per_user_recipe_count,
                 key=lambda rid: per_user_recipe_count[rid],
             )
-            favorite_recipe_name = recipes_by_id.get(favorite_recipe_id, f"Receta #{favorite_recipe_id}")
+            most_consumed_recipe_name = recipes_by_id.get(most_consumed_recipe_id, f"Receta #{most_consumed_recipe_id}")
 
         ranking.append(
             {
@@ -168,7 +227,8 @@ def get_ranking(session: Session = Depends(get_session), user: User = Depends(ge
                 "xp": u.xp,
                 "avatar_url": u.avatar_url,
                 "total_consumptions": total,
-                "favorite_recipe_name": favorite_recipe_name,
+                "most_consumed_recipe_name": most_consumed_recipe_name,
+                "favorite_recipe_name": most_consumed_recipe_name,
             }
         )
 

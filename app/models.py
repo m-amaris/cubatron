@@ -27,6 +27,15 @@ class DrinkRecipe(SQLModel, table=True):
     glass_options_json: str = '["highball", "rocks", "coupe", "hurricane"]'
     serving_modes_json: str = '{}'
 
+
+class GlassType(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    key: str = Field(index=True, unique=True)
+    name: str
+    icon: str = "🥤"
+    capacity_ml: int = 300
+    enabled: bool = True
+
 class Dispense(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(index=True)
@@ -34,6 +43,8 @@ class Dispense(SQLModel, table=True):
     action: str = "make_drink"
     status: str = "done"
     xp_earned: int = 10
+    glass_type: Optional[str] = None
+    serving_mode: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class MachineConfig(SQLModel, table=True):
