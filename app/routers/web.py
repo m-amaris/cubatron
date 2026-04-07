@@ -93,15 +93,15 @@ def dashboard_page():
         
         .nav-menu { display: flex; flex-direction: column; padding: 20px 0; flex-grow: 1; }
         .nav-menu a { padding: 16px 24px; color: var(--muted); text-decoration: none; font-weight: 600; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 1px; font-size: 14px;}
-        .nav-menu a:hover { background: var(--surface-2); color: white; }
-        .nav-menu a.active { border-left: 4px solid var(--primary); color: white; background: rgba(16, 185, 129, 0.1); }
+        .nav-menu a:hover { background: var(--surface-2); color: var(--text); }
+        .nav-menu a.active { border-left: 4px solid var(--primary); color: var(--text); background: rgba(16, 185, 129, 0.1); box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.08); }
         .nav-menu a#nav-admin { color: var(--admin-color); font-weight: 800; }
-        .nav-menu a#nav-admin.active { border-left-color: var(--admin-color); background: rgba(249, 115, 22, 0.1); }
+        .nav-menu a#nav-admin.active { border-left-color: var(--admin-color); background: rgba(249, 115, 22, 0.1); color: var(--text); box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.08); }
         
         .main-content { flex-grow: 1; margin-left: var(--sidebar-width); padding: 32px; transition: margin-left 0.3s ease; width: 100%;}
         
         .mobile-topbar { display: none; background: var(--surface); padding: 16px; border-bottom: 1px solid var(--border); align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 40;}
-        .hamburger { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        .hamburger { background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer; }
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 45; }
 
         @media (max-width: 768px) {
@@ -129,8 +129,8 @@ def dashboard_page():
         .btn { display:inline-block; background:var(--primary); color:#000; padding:12px 16px; border:none; border-radius:8px; font-weight:bold; cursor:pointer; text-align:center; transition:0.2s;}
         .btn:hover { background: var(--primary-hover); }
         .btn-small { padding: 6px 12px; font-size: 14px; }
-        .btn-secondary { background: var(--surface-2); color: white; }
-        .btn-danger { background: var(--danger); color: white; }
+        .btn-secondary { background: var(--surface-2); color: var(--text); }
+        .btn-danger { background: var(--danger); color: var(--text); }
 
         .status-indicator { display: inline-flex; align-items: center; gap: 8px; font-weight: bold; padding: 8px 16px; border-radius: 20px; background: var(--surface-2);}
         .status-dot { width: 12px; height: 12px; border-radius: 50%; }
