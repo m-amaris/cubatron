@@ -131,7 +131,8 @@ Si se envian varias ordenes seguidas, se concatenan sin repetir el pipe central:
 ### Mapeo de depositos
 
 `/api/drinks/make` calcula el reparto y lo asigna a los 4 depositos segun el nombre del deposito.
-La asignacion usa el campo `name` o `content` del deposito y lo compara con los ingredientes de la receta.
+La asignacion usa el campo `name` del deposito (configurado en la vista Sistema) y lo compara con los ingredientes de la receta.
+El campo `content` solo se usa como fallback si `name` esta vacio.
 
 Recomendacion: en la vista Sistema, asegurate de que cada deposito tenga un nombre que coincida con los ingredientes (por ejemplo `Ron`, `CocaCola`, `Limon`, `Ginebra`).
 
@@ -168,6 +169,51 @@ Nota: `prime` (cebado) sigue siendo una accion local hasta que exista un comando
 curl -X POST http://127.0.0.1:8000/api/machine/uart/status
 curl http://127.0.0.1:8000/api/machine/uart/last
 tail -n 20 /opt/cubatron/data/uart.log
+```
+
+### Pruebas en produccion (dry-run -> real)
+
+1) Activa dry-run en `/opt/cubatron/.env`:
+
+```
+CUBATRON_UART_DRY_RUN=1
+```
+
+2) Reinicia el servicio y verifica que publica en el log:
+
+```bash
+sudo systemctl restart cubatron.service
+curl -s -X POST http://127.0.0.1:8000/api/machine/uart/status
+curl -s http://127.0.0.1:8000/api/machine/uart/last
+tail -n 20 /opt/cubatron/data/uart.log
+```
+
+En dry-run, el payload debe indicar `status: dry_run`.
+
+3) Activa el modo real:
+
+```
+CUBATRON_UART_DRY_RUN=0
+```
+
+4) Reinicia y comprueba que el estado pasa a `written`:
+
+```bash
+sudo systemctl restart cubatron.service
+curl -s -X POST http://127.0.0.1:8000/api/machine/uart/status
+tail -n 20 /opt/cubatron/data/uart.log
+```
+
+Si sigue apareciendo `dry_run`, revisa que `/opt/cubatron/.env` tenga un solo valor de `CUBATRON_UART_DRY_RUN` y que cada variable este en una linea distinta:
+
+```bash
+grep -n "CUBATRON_UART" /opt/cubatron/.env
+```
+
+### Ver mensajes en tiempo real
+
+```bash
+tail -n 50 -f /opt/cubatron/data/uart.log
 ```
 
 ## Inicializacion y arranque
@@ -298,8 +344,7 @@ Notas:
   - `git log --oneline --left-right HEAD...origin/main`
   - Decide si resetear a `origin/main` o resolver conflictos fuera de prod.
 - Si cambian dependencias, ejecuta en la RPi:
-  - `. /opt/cubatron/.venv/bin/activate`
-  - `pip install -r /opt/cubatron/requirements.txt`
+  - `/opt/cubatron/.venv/bin/python -m pip install -r /opt/cubatron/requirements.txt`
 
 ## Modo AP en Raspberry Pi (recomendacion operativa)
 

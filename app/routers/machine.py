@@ -128,6 +128,7 @@ def update_tanks(tanks_data: List[TankUpdate], session: Session = Depends(get_se
             tank = session.exec(select(Tank).where(Tank.id == t_data.id)).first()
             if tank:
                 tank.name = t_data.name
+                tank.content = t_data.name
                 tank.liquid_type = t_data.liquid_type
 
                 # El dato t_data.current_ml trae el % (ej: 80). Lo pasamos a mililitros reales para la BD.

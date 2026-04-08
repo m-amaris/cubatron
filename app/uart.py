@@ -96,10 +96,15 @@ def map_liquids_to_slots(
         if slot not in slot_values:
             continue
 
-        for key in ("name", "content"):
-            normalized = normalize_liquid_name(tank.get(key) or "")
-            if normalized and normalized not in name_to_slot:
-                name_to_slot[normalized] = slot
+        normalized_name = normalize_liquid_name(tank.get("name") or "")
+        if normalized_name:
+            if normalized_name not in name_to_slot:
+                name_to_slot[normalized_name] = slot
+            continue
+
+        normalized_content = normalize_liquid_name(tank.get("content") or "")
+        if normalized_content and normalized_content not in name_to_slot:
+            name_to_slot[normalized_content] = slot
 
     missing: set[str] = set()
     resolved: dict[str, int] = {}
