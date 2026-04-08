@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 data/cubatron.db
+data/uart.log
 .DS_Store
 .vscode/
 .env

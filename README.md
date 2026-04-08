@@ -98,6 +98,78 @@ Notas:
 - El seed crea admin inicial solo si no existe ese usuario.
 - `app/config.py` fija `BASE_DIR` en `/opt/cubatron`; en local usa ese path o ajusta `BASE_DIR`.
 
+## UART / STM32
+
+El backend envia comandos por UART en texto plano, con framing por `|` para separar ordenes.
+
+Formato:
+
+```
+|CMD;arg1;arg2|
+```
+
+Si se envian varias ordenes seguidas, se concatenan sin repetir el pipe central:
+
+```
+|CMD1;...|CMD2;...|
+```
+
+### Comandos implementados
+
+- `MAKE;ml1;ml2;ml3;ml4`
+  - Ejemplo: `|MAKE;20;15;0;0|`
+- `CLEAN;slot`
+  - Ejemplo: `|CLEAN;2|`
+  - Si no se indica `slot`, se envia `|CLEAN|` (limpieza general)
+- `STOP`
+  - Ejemplo: `|STOP|`
+- `STATUS`
+  - Ejemplo: `|STATUS|`
+- `TEMP;setpoint`
+  - Ejemplo: `|TEMP;6.5|`
+
+### Mapeo de depositos
+
+`/api/drinks/make` calcula el reparto y lo asigna a los 4 depositos segun el nombre del deposito.
+La asignacion usa el campo `name` o `content` del deposito y lo compara con los ingredientes de la receta.
+
+Recomendacion: en la vista Sistema, asegurate de que cada deposito tenga un nombre que coincida con los ingredientes (por ejemplo `Ron`, `CocaCola`, `Limon`, `Ginebra`).
+
+Si `CUBATRON_UART_ENFORCE_TANKS=1`, la API devuelve 409 si falta un deposito para algun ingrediente.
+
+### Variables de entorno UART
+
+- `CUBATRON_UART_ENABLED` (default: `1`)
+- `CUBATRON_UART_DRY_RUN` (default: `1`)
+- `CUBATRON_UART_ENFORCE_TANKS` (default: `1`)
+- `CUBATRON_UART_PORT` (default: `/dev/serial0`)
+- `CUBATRON_UART_BAUDRATE` (default: `115200`)
+- `CUBATRON_UART_TIMEOUT` (default: `0.5`)
+- `CUBATRON_UART_WRITE_TIMEOUT` (default: `0.5`)
+- `CUBATRON_UART_LOG_PATH` (default: `/opt/cubatron/data/uart.log`)
+
+Para probar sin STM32, deja `CUBATRON_UART_DRY_RUN=1`. El backend registrara los envios en el log y en `/api/machine/uart/last`.
+
+### Endpoints UART
+
+- `POST /api/drinks/make` -> envia `MAKE`
+- `POST /api/machine/action/clean` -> envia `CLEAN`
+- `POST /api/machine/action/purge_tank_{n}` -> envia `CLEAN;n`
+- `POST /api/machine/stop` -> envia `STOP`
+- `POST /api/machine/temp` -> envia `TEMP`
+- `POST /api/machine/uart/status` -> envia `STATUS`
+- `GET /api/machine/uart/last` -> ultimo envio UART
+
+Nota: `prime` (cebado) sigue siendo una accion local hasta que exista un comando dedicado en el STM32.
+
+### Comprobacion rapida
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/machine/uart/status
+curl http://127.0.0.1:8000/api/machine/uart/last
+tail -n 20 /opt/cubatron/data/uart.log
+```
+
 ## Inicializacion y arranque
 
 ### Desarrollo/local (manual)

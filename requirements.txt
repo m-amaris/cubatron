@@ -4,3 +4,4 @@ sqlmodel
 PyJWT
 python-multipart
 pwdlib
+pyserial

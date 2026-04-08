@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 from typing import List
 from datetime import datetime, timedelta
@@ -7,6 +7,15 @@ from threading import Lock
 import re
 from app.database import get_session
 from app.models import MachineConfig, Tank, MachineEvent
+from app.config import UART_ENABLED
+from app.uart import (
+    build_clean_command,
+    build_status_command,
+    build_stop_command,
+    build_temp_command,
+    get_last_uart_write,
+    send_uart_command,
+)
 
 router = APIRouter()
 
@@ -18,6 +27,10 @@ class TankUpdate(BaseModel):
     name: str
     liquid_type: str
     current_ml: int  # <-- AHORA SÍ: Coincide exactamente con lo que manda la web
+
+
+class TempUpdate(BaseModel):
+    target_c: float = Field(ge=-20, le=40)
 
 @router.get("/status")
 def status(session: Session = Depends(get_session)):
@@ -46,6 +59,63 @@ def status(session: Session = Depends(get_session)):
         "drinks_24h": drinks_24h,  # <-- Enviamos el dato al frontend
         "tanks": tanks_out
     }
+
+
+@router.get("/uart/last")
+def uart_last_write():
+    return {"ok": True, "last": get_last_uart_write()}
+
+
+@router.post("/uart/status")
+def uart_status():
+    uart_payload = send_uart_command(build_status_command())
+    if UART_ENABLED and not uart_payload.get("ok"):
+        error_detail = uart_payload.get("error") or "Error UART"
+        raise HTTPException(status_code=503, detail=f"No se pudo escribir en UART: {error_detail}")
+    return {"ok": True, "uart": uart_payload}
+
+
+@router.post("/stop")
+def stop_machine(session: Session = Depends(get_session)):
+    global MACHINE_STATUS
+    with _STATUS_LOCK:
+        MACHINE_STATUS = "BUSY"
+    try:
+        uart_payload = send_uart_command(build_stop_command())
+        if UART_ENABLED and not uart_payload.get("ok"):
+            error_detail = uart_payload.get("error") or "Error UART"
+            raise HTTPException(status_code=503, detail=f"No se pudo escribir en UART: {error_detail}")
+
+        session.add(MachineEvent(event_type="stop", status="done", detail="Parada de emergencia enviada"))
+        session.commit()
+        return {"ok": True, "message": "Parada enviada", "uart": uart_payload}
+    finally:
+        with _STATUS_LOCK:
+            MACHINE_STATUS = "ONLINE"
+
+
+@router.post("/temp")
+def set_temperature(data: TempUpdate, session: Session = Depends(get_session)):
+    global MACHINE_STATUS
+    with _STATUS_LOCK:
+        MACHINE_STATUS = "BUSY"
+    try:
+        uart_payload = send_uart_command(build_temp_command(data.target_c))
+        if UART_ENABLED and not uart_payload.get("ok"):
+            error_detail = uart_payload.get("error") or "Error UART"
+            raise HTTPException(status_code=503, detail=f"No se pudo escribir en UART: {error_detail}")
+
+        config = session.exec(select(MachineConfig)).first()
+        if not config:
+            config = MachineConfig()
+        config.serving_temperature = float(data.target_c)
+        session.add(config)
+        session.add(MachineEvent(event_type="temp", status="done", detail=f"TEMP set {data.target_c}"))
+        session.commit()
+        return {"ok": True, "temperature": config.serving_temperature, "uart": uart_payload}
+    finally:
+        with _STATUS_LOCK:
+            MACHINE_STATUS = "ONLINE"
 
 
 @router.post("/tanks/update")
@@ -81,9 +151,20 @@ def perform_action(action_name: str, session: Session = Depends(get_session)):
     with _STATUS_LOCK:
         MACHINE_STATUS = "BUSY"
     try:
+        uart_payload = None
+        if action_name == "clean":
+            uart_payload = send_uart_command(build_clean_command())
+        elif action_name.startswith("purge_tank_"):
+            slot = int(action_name.split("_")[-1])
+            uart_payload = send_uart_command(build_clean_command(slot))
+
+        if UART_ENABLED and uart_payload is not None and not uart_payload.get("ok"):
+            error_detail = uart_payload.get("error") or "Error UART"
+            raise HTTPException(status_code=503, detail=f"No se pudo escribir en UART: {error_detail}")
+
         session.add(MachineEvent(event_type=action_name, status="done", detail=f"Acción {action_name} ejecutada"))
         session.commit()
-        return {"ok": True, "message": f"{action_name.capitalize()} completado"}
+        return {"ok": True, "message": f"{action_name.capitalize()} completado", "uart": uart_payload}
     finally:
         with _STATUS_LOCK:
             MACHINE_STATUS = "ONLINE"

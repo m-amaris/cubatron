@@ -2,9 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 import json
 from app.database import get_session
-from app.models import User, DrinkRecipe, Dispense, MachineEvent, GlassType
+from app.models import User, DrinkRecipe, Dispense, MachineEvent, GlassType, Tank
 from app.schemas import MakeDrinkRequest
 from app.dependencies import get_current_user
+from app.config import UART_ENFORCE_TANKS, UART_ENABLED
+from app.uart import build_make_command, map_liquids_to_slots, send_uart_command
 
 router = APIRouter()
 
@@ -236,6 +238,29 @@ def make_drink(data: MakeDrinkRequest, session: Session = Depends(get_session), 
     selected_mode = str(service_data["serving_mode"])
     liquid_breakdown = service_data["liquid_breakdown"]
 
+    tanks = session.exec(select(Tank)).all()
+    tank_payload = [
+        {
+            "slot": t.slot,
+            "name": t.name,
+            "content": t.content,
+            "enabled": t.enabled,
+        }
+        for t in tanks
+    ]
+    slot_values, missing_liquids, _ = map_liquids_to_slots(tank_payload, liquid_breakdown)
+    should_enforce = UART_ENFORCE_TANKS and UART_ENABLED
+    if should_enforce and not tank_payload:
+        raise HTTPException(status_code=409, detail="No hay depositos configurados para enviar MAKE")
+    if should_enforce and missing_liquids:
+        missing = ", ".join(missing_liquids)
+        raise HTTPException(status_code=409, detail=f"Liquidos sin deposito asignado: {missing}")
+
+    uart_payload = send_uart_command(build_make_command(slot_values))
+    if UART_ENABLED and not uart_payload.get("ok"):
+        error_detail = uart_payload.get("error") or "Error UART"
+        raise HTTPException(status_code=503, detail=f"No se pudo escribir en UART: {error_detail}")
+
     # 1. Sumamos la XP final según vaso y modo, y actualizamos nivel (1 nivel cada 100 XP)
     user.xp += xp_earned
     user.level = (user.xp // 100) + 1  
@@ -269,6 +294,9 @@ def make_drink(data: MakeDrinkRequest, session: Session = Depends(get_session), 
         "glass_type": selected_glass,
         "serving_mode": selected_mode,
         "liquid_breakdown": liquid_breakdown,
+        "uart": uart_payload,
+        "uart_slot_ml": slot_values,
+        "uart_missing": missing_liquids,
     }
 
 @router.post("/repeat-last")
