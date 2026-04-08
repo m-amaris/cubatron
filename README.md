@@ -61,7 +61,8 @@ Eso no impide ejecutarlo en hardware superior, pero la guia y ajustes estan orie
 
 ## Estructura de codigo (importante para despliegue)
 
-Usa siempre este mapeo al copiar archivos:
+El despliegue se hace via Git en `/opt/cubatron`. Evita copiar archivos a mano.
+Si hay un hotfix manual, respeta este mapeo:
 
 - Local `app/*.py` -> Remoto `/opt/cubatron/app/`
 - Local `app/routers/*.py` -> Remoto `/opt/cubatron/app/routers/`
@@ -80,11 +81,7 @@ En Raspberry Pi:
 
 Dependencias Python minimas usadas por el proyecto:
 
-- `fastapi`
-- `uvicorn`
-- `sqlmodel`
-- `PyJWT`
-- `python-multipart`
+- Ver `requirements.txt`.
 
 ## Configuracion de entorno
 
@@ -99,6 +96,7 @@ Notas:
 
 - Si no existe `.env`, el script de despliegue puede generarlo automaticamente.
 - El seed crea admin inicial solo si no existe ese usuario.
+- `app/config.py` fija `BASE_DIR` en `/opt/cubatron`; en local usa ese path o ajusta `BASE_DIR`.
 
 ## Inicializacion y arranque
 
@@ -108,8 +106,9 @@ Notas:
 cd /opt/cubatron
 python -m venv .venv
 . .venv/bin/activate
-pip install fastapi uvicorn sqlmodel pyjwt python-multipart
-uvicorn app.main:app --host 127.0.0.1 --port 8000
+pip install -U pip
+pip install -r requirements.txt
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 La BD SQLite se crea automaticamente en `/opt/cubatron/data/cubatron.db`.
@@ -127,6 +126,108 @@ Esto configura:
 - `cubatron.service`
 - `cubatron-tailscale-serve.service`
 - `tailscaled`
+
+## Flujo de trabajo
+
+### Flujo de trabajo local
+
+1) Actualiza el repo y activa tu entorno:
+
+```bash
+git pull --ff-only
+python -m venv .venv
+. .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+```
+
+2) Arranca el backend en modo local:
+
+```bash
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+3) Abre la UI:
+
+- `http://127.0.0.1:8000/`
+- `http://127.0.0.1:8000/dashboard`
+
+La BD SQLite se crea en `data/cubatron.db`.
+
+### Flujo de trabajo en produccion (Raspberry Pi)
+
+1) Servicios activos:
+
+```bash
+systemctl status cubatron.service --no-pager
+systemctl status cubatron-tailscale-serve.service --no-pager
+```
+
+2) Logs recientes:
+
+```bash
+journalctl -u cubatron.service -n 100 --no-pager
+```
+
+3) Healthcheck local:
+
+```bash
+curl -s -o /dev/null -w "health:%{http_code}\n" http://127.0.0.1:8000/health
+```
+
+### Preflight antes de desplegar
+
+```bash
+ssh miguel@cubatron
+cd /opt/cubatron
+git status -sb
+git fetch
+git log --oneline HEAD..origin/main
+git diff --stat HEAD..origin/main
+systemctl status cubatron.service --no-pager
+curl -s -o /dev/null -w "health:%{http_code}\n" http://127.0.0.1:8000/health
+```
+
+### Llevar cambios de local a produccion
+
+**En local:**
+
+```bash
+git pull --ff-only
+git status -sb
+git add -A
+git commit -m "<mensaje>"
+git push origin main
+```
+
+**En Raspberry Pi (produccion):**
+
+```bash
+ssh miguel@cubatron
+cd /opt/cubatron
+git status -sb
+git pull --ff-only
+sudo systemctl restart cubatron.service
+```
+
+Verifica que la app quedo arriba:
+
+```bash
+systemctl status cubatron.service --no-pager
+curl -s -o /dev/null -w "health:%{http_code}\n" http://127.0.0.1:8000/health
+```
+
+Notas:
+
+- En produccion no hagas cambios directos: todo debe venir de Git.
+- El remoto recomendado es SSH (`git@github.com:m-amaris/cubatron.git`) con deploy key de solo lectura en la RPi.
+- Si `git pull --ff-only` falla por divergencia, no hagas merge en produccion:
+  - `git fetch`
+  - `git log --oneline --left-right HEAD...origin/main`
+  - Decide si resetear a `origin/main` o resolver conflictos fuera de prod.
+- Si cambian dependencias, ejecuta en la RPi:
+  - `. /opt/cubatron/.venv/bin/activate`
+  - `pip install -r /opt/cubatron/requirements.txt`
 
 ## Modo AP en Raspberry Pi (recomendacion operativa)
 
@@ -238,7 +339,7 @@ Con esto, clientes conectados al AP deberian resolver `cubatron.local` hacia la 
 systemctl status cubatron.service --no-pager
 systemctl status cubatron-tailscale-serve.service --no-pager
 tailscale serve status
-curl http://127.0.0.1:8000/health
+curl -s -o /dev/null -w "health:%{http_code}\n" http://127.0.0.1:8000/health
 ```
 
 ## Comandos de diagnostico
@@ -318,12 +419,21 @@ tailscale serve status
 
 ## Despliegue seguro de cambios
 
-Para evitar errores de rutas:
+Flujo recomendado (Git + systemd):
 
-1. Copia `app/*.py` a `/opt/cubatron/app/`.
-2. Copia `app/routers/*.py` a `/opt/cubatron/app/routers/`.
-3. Reinicia `cubatron.service`.
-4. Verifica `/health`.
+1. En local: commit y `git push origin main`.
+2. En produccion:
+
+```bash
+cd /opt/cubatron
+git status -sb
+git pull --ff-only
+sudo systemctl restart cubatron.service
+```
+
+3. Verifica `/health` y logs recientes.
+
+Si hay divergencia en prod, no merges: resuelvelo fuera y vuelve a hacer pull.
 
 ## Solucion de problemas
 

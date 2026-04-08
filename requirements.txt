@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+sqlmodel
+PyJWT
+python-multipart
+pwdlib
