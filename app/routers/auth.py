@@ -16,7 +16,7 @@ class LoginRequest(BaseModel):
 def login(data: LoginRequest):
     with Session(engine) as session:
         user = session.exec(select(User).where(User.username == data.username)).first()
-        if not user or not verify_password(data.password, user.password_hash):
+        if not user or user.is_archived or not verify_password(data.password, user.password_hash):
             raise HTTPException(status_code=401, detail="Credenciales incorrectas")
 
         token = create_access_token({

@@ -7,6 +7,7 @@ class ServingMode(str, Enum):
     medium = "medium"
     high = "high"
     extreme = "extreme"
+    custom = "custom"
 
 class LoginRequest(BaseModel):
     username: str
@@ -16,6 +17,7 @@ class MakeDrinkRequest(BaseModel):
     recipe_id: int = Field(gt=0)
     serving_mode: ServingMode = ServingMode.medium
     glass_type: str = Field(min_length=1, max_length=32)
+    custom_serving_profile: dict[str, float] | None = None
 
     @field_validator("glass_type")
     @classmethod

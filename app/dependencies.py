@@ -25,7 +25,7 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="Token inválido")
 
     user = session.exec(select(User).where(User.id == user_id)).first()
-    if not user:
+    if not user or getattr(user, "is_archived", False):
         raise HTTPException(status_code=401, detail="Usuario no encontrado")
     return user
 

@@ -15,6 +15,9 @@ class User(SQLModel, table=True):
     level: int = 1
     theme_mode: str = "dark"
     accent_color: str = "emerald"
+    is_archived: bool = False
+    archived_at: Optional[datetime] = None
+    archived_by: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class DrinkRecipe(SQLModel, table=True):

@@ -21,6 +21,7 @@ MODE_XP_MULTIPLIER = {
     "medium": 1.0,
     "high": 1.2,
     "extreme": 1.4,
+    "custom": 1.0,
 }
 
 
@@ -104,15 +105,40 @@ def _compute_liquid_breakdown(profile: dict[str, float], total_ml: int) -> list[
     return breakdown
 
 
+def _normalize_custom_profile(raw_profile, fallback_profile: dict[str, float] | None = None) -> dict[str, float]:
+    safe_profile = {}
+    if isinstance(raw_profile, dict):
+        for liquid, raw_pct in raw_profile.items():
+            try:
+                pct = float(raw_pct)
+            except Exception:
+                pct = 0.0
+            safe_profile[str(liquid)] = max(0.0, pct)
+
+    if safe_profile:
+        return safe_profile
+
+    fallback_profile = fallback_profile or {}
+    safe_fallback = {}
+    for liquid, raw_pct in fallback_profile.items():
+        try:
+            pct = float(raw_pct)
+        except Exception:
+            pct = 0.0
+        safe_fallback[str(liquid)] = max(0.0, pct)
+    return safe_fallback
+
+
 def _resolve_service_selection(
     recipe: DrinkRecipe,
     session: Session,
     serving_mode: str,
     glass_type: str,
+    custom_serving_profile: dict[str, float] | None = None,
 ) -> dict:
     serving_modes = _safe_load_json(getattr(recipe, "serving_modes_json", "{}"), {})
     selected_mode = serving_mode
-    if selected_mode not in serving_modes:
+    if selected_mode != "custom" and selected_mode not in serving_modes:
         selected_mode = "medium" if "medium" in serving_modes else (next(iter(serving_modes), "medium"))
 
     glass_catalog = _active_glass_catalog(session)
@@ -126,8 +152,20 @@ def _resolve_service_selection(
 
     total_ml = _glass_capacity_ml(glass_catalog, selected_glass)
     xp_earned = _compute_xp(recipe.xp_reward, total_ml, selected_mode)
-    profile = serving_modes.get(selected_mode, {}) if isinstance(serving_modes, dict) else {}
+    profile = {}
+    if selected_mode == "custom":
+        fallback_mode = "medium" if isinstance(serving_modes, dict) and "medium" in serving_modes else (next(iter(serving_modes), None) if isinstance(serving_modes, dict) and serving_modes else None)
+        fallback_profile = serving_modes.get(fallback_mode, {}) if fallback_mode else {}
+        profile = _normalize_custom_profile(custom_serving_profile, fallback_profile=fallback_profile)
+        if not profile:
+            raise HTTPException(status_code=400, detail="Perfil personalizado no válido")
+        if sum(profile.values()) <= 0:
+            raise HTTPException(status_code=400, detail="Perfil personalizado no válido")
+    else:
+        profile = serving_modes.get(selected_mode, {}) if isinstance(serving_modes, dict) else {}
     liquid_breakdown = _compute_liquid_breakdown(profile, total_ml)
+    if selected_mode == "custom" and not liquid_breakdown:
+        raise HTTPException(status_code=400, detail="Perfil personalizado no válido")
     glass_info = glass_catalog.get(selected_glass, {})
 
     return {
@@ -176,6 +214,7 @@ def preview_drink(
         session=session,
         serving_mode=data.serving_mode.value,
         glass_type=data.glass_type,
+        custom_serving_profile=data.custom_serving_profile,
     )
 
 @router.post("/make")
@@ -189,6 +228,7 @@ def make_drink(data: MakeDrinkRequest, session: Session = Depends(get_session), 
         session=session,
         serving_mode=data.serving_mode.value,
         glass_type=data.glass_type,
+        custom_serving_profile=data.custom_serving_profile,
     )
     xp_earned = int(service_data["xp_earned"])
     total_ml = int(service_data["total_ml"])

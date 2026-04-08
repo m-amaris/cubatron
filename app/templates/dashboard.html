@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="es">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Cubatron - Dashboard</title>
+	<link rel="stylesheet" href="/static/css/dashboard.css">
+	<script type="module" src="/static/js/pages/dashboard.js"></script>
+</head>
+<body>
+	<div class="app-container">
+		<div class="overlay" id="overlay" data-action="toggle-sidebar"></div>
+
+		<aside class="sidebar" id="sidebar">
+			<div class="sidebar-header">
+				<h1>CUBATRON</h1>
+				<div class="stack-center">
+					<div id="sb-avatar" class="sidebar-avatar">👤</div>
+					<div>
+						<div id="sb-name" class="sidebar-name">Cargando...</div>
+						<div id="sb-info" class="sidebar-info">&nbsp;</div>
+						<div id="sb-level" class="sidebar-level">LVL -</div>
+					</div>
+				</div>
+				<div class="sidebar-spacer">
+					<div class="sidebar-xp-row">
+						<span>PROGRESO XP</span><span id="sb-xp">0 / 100</span>
+					</div>
+					<div class="sidebar-xp-track">
+						<div id="sb-xp-bar" class="sidebar-xp-bar"></div>
+					</div>
+				</div>
+			</div>
+
+			<nav class="nav-menu">
+				<a class="active" data-action="switch-view" data-view="dashboard">Inicio</a>
+				<a data-action="switch-view" data-view="machine">Sistema</a>
+				<a data-action="switch-view" data-view="ranking">Ranking</a>
+				<a data-action="switch-view" data-view="profile">Mi Perfil</a>
+				<a id="nav-admin" class="hidden" data-action="switch-view" data-view="admin">ADMIN</a>
+				<div class="spacer-grow"></div>
+				<a class="sidebar-exit" data-action="logout">Salir</a>
+			</nav>
+		</aside>
+
+		<div class="main-content">
+			<div class="mobile-topbar">
+				<button class="hamburger" type="button" data-action="toggle-sidebar">☰</button>
+				<h1 class="topbar-title">CUBATRON</h1>
+				<div class="topbar-spacer"></div>
+			</div>
+
+			<div id="view-dashboard" class="view-section active">
+				<div class="card card-tight">
+					<h2>Estado de la Máquina</h2>
+					<div class="field-row space-between">
+						<div id="machine-status" class="status-indicator compact status-OFFLINE"><div class="status-dot"></div><span id="status-text">OFFLINE</span></div>
+						<div class="status-24h-box"><p class="status-24h-label">Consumiciones en 24h</p><strong id="status-drinks" class="status-24h-value">0</strong></div>
+					</div>
+				</div>
+
+				<div class="card card-compact">
+					<h2>Recetas Disponibles</h2>
+					<div id="recipes-list" class="grid-3"><p class="muted">Cargando...</p></div>
+				</div>
+
+				<div class="card card-compact">
+					<h2>Últimas Consumiciones Realizadas</h2>
+					<div class="history-toolbar">
+						<input id="global-history-filter" type="text" class="form-control" placeholder="Filtrar por bebida o usuario">
+						<button class="btn btn-small btn-secondary" type="button" data-action="apply-global-history-filter">Filtrar</button>
+					</div>
+					<div id="global-history-list" class="history-list"><p class="muted">Aún no has preparado nada.</p></div>
+					<div class="history-pager">
+						<button class="btn btn-small btn-secondary" type="button" data-action="change-global-history-page" data-delta="-1">Anterior</button>
+						<span id="global-history-page" class="muted">Página 1 / 1</span>
+						<button class="btn btn-small btn-secondary" type="button" data-action="change-global-history-page" data-delta="1">Siguiente</button>
+					</div>
+				</div>
+			</div>
+
+			<div id="view-machine" class="view-section">
+				<div class="grid-2">
+					<div class="card">
+						<h2>Cámara en Vivo</h2>
+						<div class="camera-feed"><span class="camera-empty">[ CÁMARA NO CONECTADA ]</span></div>
+						<div class="camera-actions">
+							<button class="btn btn-secondary" type="button" data-action="machine-action" data-machine-action="prime">Cebar Circuito</button>
+							<button class="btn btn-secondary" type="button" data-action="machine-action" data-machine-action="clean">Limpieza Auto</button>
+						</div>
+					</div>
+					<div class="card">
+						<h2>Estado de Depósitos</h2>
+						<div id="tanks-list" class="stacked-list"></div>
+						<button class="btn btn-wide mt-20" type="button" data-action="save-tanks">Guardar Depósitos</button>
+					</div>
+				</div>
+			</div>
+
+			<div id="view-admin" class="view-section">
+				<div class="card admin-hero">
+					<div class="admin-hero-copy">
+						<div class="admin-eyebrow">Centro de control</div>
+						<h2>Panel de administración</h2>
+						<p>Una única vista para usuarios, recetas, vasos, líquidos y telemetría operativa. Diseñado para actuar rápido y revisar con contexto.</p>
+						<div class="admin-hero-actions">
+							<button type="button" class="btn btn-add btn-add-user" data-action="toggle-user-form" aria-label="Nuevo usuario">Nuevo usuario</button>
+							<button type="button" class="btn btn-secondary" data-action="reload-admin-panel">Actualizar panel</button>
+						</div>
+					</div>
+					<div id="admin-overview-grid" class="admin-overview-grid"></div>
+				</div>
+				<div class="admin-shell">
+					<aside class="admin-local-nav card">
+						<div class="admin-local-nav-title">Secciones</div>
+						<button type="button" class="admin-local-link active" data-action="switch-admin-section" data-section="users">Usuarios</button>
+						<button type="button" class="admin-local-link" data-action="switch-admin-section" data-section="recipes">Recetas</button>
+						<button type="button" class="admin-local-link" data-action="switch-admin-section" data-section="glasses">Vasos</button>
+						<button type="button" class="admin-local-link" data-action="switch-admin-section" data-section="liquids">Líquidos</button>
+						<button type="button" class="admin-local-link" data-action="switch-admin-section" data-section="settings">Ajustes</button>
+					</aside>
+
+					<div class="admin-sections">
+						<section class="admin-panel-section active" data-admin-section="users">
+							<div class="card card-compact admin-section-card admin-users-panel">
+								<div class="section-header-row admin-section-header">
+									<div class="section-header-copy">
+										<span class="admin-section-kicker">Identidad y permisos</span>
+										<h2>Usuarios del sistema</h2>
+										<p class="muted-copy">Edita perfiles, permisos y preferencias sin salir del panel.</p>
+									</div>
+									<button type="button" class="btn btn-add btn-add-user" data-action="toggle-user-form" aria-label="Nuevo usuario">Añadir</button>
+								</div>
+								<div class="admin-toolbar">
+									<input id="admin-user-search" type="text" class="form-control" placeholder="Buscar por usuario, nombre, rol o mezcla favorita">
+									<span id="admin-users-count" class="admin-toolbar-count">0 usuarios</span>
+								</div>
+								<div class="admin-users-layout">
+									<div id="admin-users-list" class="admin-users-list"></div>
+									<div class="admin-activity-card">
+										<div class="admin-activity-head">
+											<div>
+												<span class="admin-section-kicker">Detalle y trazabilidad</span>
+												<h3>Actividad reciente</h3>
+												<p class="muted-copy">Consumiciones y estado del usuario seleccionado.</p>
+											</div>
+										</div>
+										<div id="admin-user-activity" class="admin-user-activity empty"><p class="blank-state">Selecciona un usuario para ver su actividad reciente.</p></div>
+									</div>
+								</div>
+							</div>
+						</section>
+
+						<section class="admin-panel-section" data-admin-section="recipes">
+							<div class="card card-compact admin-section-card">
+								<div class="section-header-row admin-section-header">
+									<div class="section-header-copy">
+										<span class="admin-section-kicker">Biblioteca de recetas</span>
+										<h2>Gestión de Recetas</h2>
+										<p class="muted-copy">Configura ingredientes, tipos de vaso y perfiles LOW/MEDIUM/HIGH/EXTREME por receta.</p>
+									</div>
+									<button type="button" class="btn btn-add btn-add-recipe" data-action="toggle-recipe-form" aria-label="Nueva receta">Añadir</button>
+								</div>
+								<div id="admin-recipes-list" class="mb-16"></div>
+							</div>
+						</section>
+
+						<section class="admin-panel-section" data-admin-section="glasses">
+							<div class="card card-compact admin-section-card">
+								<div class="section-header-row admin-section-header">
+									<div class="section-header-copy">
+										<span class="admin-section-kicker">Catálogo de cristalería</span>
+										<h2>Gestión de Vasos</h2>
+										<p class="muted-copy">Crea, edita o elimina vasos con su nombre, icono y capacidad fija en mL.</p>
+									</div>
+									<button type="button" class="btn btn-add btn-add-glass" data-action="toggle-glass-form" aria-label="Nuevo vaso">Añadir</button>
+								</div>
+								<div id="admin-glasses-list" class="mb-16"></div>
+							</div>
+						</section>
+
+						<section class="admin-panel-section" data-admin-section="liquids">
+							<div class="grid-2">
+								<div class="card admin-section-card">
+									<div class="section-header-row admin-section-header">
+										<div class="section-header-copy">
+											<span class="admin-section-kicker">Inventario base</span>
+											<h2>Líquidos del Sistema</h2>
+											<p class="muted-copy">Gestiona qué líquidos se pueden usar en los depósitos.</p>
+										</div>
+										<button type="button" class="btn btn-add btn-add-liquid" data-action="toggle-liquid-form" aria-label="Nuevo líquido">Añadir</button>
+									</div>
+									<div id="admin-liquids-list" class="mb-16"></div>
+								</div>
+								<div class="card admin-section-card">
+									<div class="section-header-row admin-section-header">
+										<div class="section-header-copy">
+											<span class="admin-section-kicker">Impacto operativo</span>
+											<h2>Actividad de datos</h2>
+											<p class="muted-copy">Los cambios de líquidos se propagan a recetas y depósitos para evitar inconsistencias.</p>
+										</div>
+									</div>
+									<ul class="admin-notes-list">
+										<li>Renombrar un líquido actualiza recetas y depósitos asociados.</li>
+										<li>Eliminar un líquido limpia su selección en recetas.</li>
+										<li>La edición se hace siempre en popup para evitar errores de contexto.</li>
+									</ul>
+								</div>
+							</div>
+						</section>
+
+						<section class="admin-panel-section" data-admin-section="settings">
+							<div class="card admin-section-card">
+								<div class="section-header-row admin-section-header">
+									<div class="section-header-copy">
+										<span class="admin-section-kicker">Control del sistema</span>
+										<h2>Tiempos de Actualización</h2>
+										<p class="muted-copy">Ajusta los intervalos de refresco del estado y los depósitos.</p>
+									</div>
+								</div>
+								<form id="settings-form">
+									<div class="form-group"><label>Refresco Estado (ms)</label><input type="number" id="set-status" class="form-control"></div>
+									<div class="form-group"><label>Refresco Depósitos (ms)</label><input type="number" id="set-tanks" class="form-control"></div>
+									<button type="submit" class="btn">Aplicar Tiempos</button>
+								</form>
+							</div>
+						</section>
+					</div>
+				</div>
+			</div>
+
+			<div id="view-ranking" class="view-section">
+				<div class="card">
+					<h2>Ranking Global</h2>
+					<div class="table-wrap">
+						<table class="ranking-table">
+							<thead><tr><th>FOTO</th><th>POS</th><th>USUARIO</th><th>NIVEL</th><th>XP</th><th>CONSUMICIONES</th><th>BEBIDA MAS CONSUMIDA</th></tr></thead>
+							<tbody id="ranking-list"></tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+
+			<div id="view-profile" class="view-section">
+				<div class="grid-2">
+					<div class="card">
+						<h2>Actualizar Información</h2>
+						<form id="profile-form">
+							<div class="form-group field-center-column">
+								<div id="edit-avatar-preview" class="avatar-shell">👤</div>
+								<input type="file" id="edit-avatar" accept="image/*" class="form-control input-surface-2">
+							</div>
+							<div class="form-group"><label>Nombre a mostrar</label><input type="text" id="edit-fullname" class="form-control"></div>
+							<div class="form-group"><label>Bebida Favorita</label><select id="edit-mix" class="form-control"><option value="">-- Sin favorita --</option></select></div>
+							<div class="form-group"><label>Info</label><input type="text" id="edit-info" class="form-control" maxlength="140" placeholder="Tu estado o info personal"></div>
+							<button type="submit" class="btn btn-wide">Guardar Cambios</button>
+						</form>
+					</div>
+					<div class="card card-fit">
+						<h2>Interfaz</h2>
+						<div class="form-group"><label>Tema</label><select id="ui-theme" class="form-control"><option value="dark">Oscuro</option><option value="light">Claro</option></select></div>
+						<div class="form-group"><label>Acento</label><select id="ui-accent" class="form-control"><option value="emerald">Verde</option><option value="blue">Azul</option><option value="orange">Naranja</option><option value="rose">Rosa</option><option value="slate">Pizarra</option></select></div>
+						<p class="theme-note">Se guardan por usuario y se aplican al iniciar sesión.</p>
+					</div>
+					<div class="card card-fit">
+						<h2>Seguridad</h2>
+						<form id="password-form">
+							<div class="form-group"><label>Nueva Contraseña</label><input type="password" id="edit-password" class="form-control" required></div>
+							<button type="submit" class="btn btn-secondary btn-wide">Actualizar Contraseña</button>
+						</form>
+					</div>
+				</div>
+				<div class="card card-top">
+					<h2>Tus Últimas Consumiciones</h2>
+					<div class="history-toolbar">
+						<input id="my-history-filter" type="text" class="form-control" placeholder="Filtrar por bebida">
+						<button class="btn btn-small btn-secondary" type="button" data-action="apply-my-history-filter">Filtrar</button>
+					</div>
+					<div id="my-history-list" class="history-list"><p class="muted">Aún no has preparado nada.</p></div>
+					<div class="history-pager">
+						<button class="btn btn-small btn-secondary" type="button" data-action="change-my-history-page" data-delta="-1">Anterior</button>
+						<span id="my-history-page" class="muted">Página 1 / 1</span>
+						<button class="btn btn-small btn-secondary" type="button" data-action="change-my-history-page" data-delta="1">Siguiente</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div id="serve-modal" class="modal-backdrop" data-action="close-serve-modal">
+		<div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="serve-title">
+			<div class="modal-header-row">
+				<h3 id="serve-title" class="modal-title">Preparar bebida</h3>
+				<button class="btn btn-secondary btn-small" type="button" data-action="close-serve-modal">Cerrar</button>
+			</div>
+			<p id="serve-desc" class="modal-desc">Selecciona vaso y modo de servicio.</p>
+			<div id="serve-glass-picker" class="glass-picker"></div>
+			<div id="serve-mode-picker" class="mode-picker"></div>
+			<div id="serve-custom-editor" class="serve-custom-editor"></div>
+			<div class="modal-breakdown">
+				<span class="modal-label">Detalle del servido</span>
+				<div id="serve-ml-estimate" class="fs-12 text-muted"></div>
+				<div id="serve-xp-estimate" class="fs-12 text-muted"></div>
+				<div id="serve-breakdown" class="stacked-list-12"></div>
+			</div>
+			<div class="modal-actions">
+				<button class="btn btn-secondary" type="button" data-action="close-serve-modal">Cancelar</button>
+				<button class="btn btn-start" type="button" data-action="confirm-serve-drink">Preparar</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="recipe-modal" class="modal-backdrop" data-action="close-recipe-modal">
+		<div class="modal-card admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="recipe-modal-title">
+			<div class="modal-header-row">
+				<h3 id="recipe-modal-title" class="modal-title">Gestión de Recetas</h3>
+				<button class="btn btn-secondary btn-small" type="button" data-action="close-recipe-modal">Cerrar</button>
+			</div>
+			<p class="modal-desc">Crea o edita una receta sin salir del panel.</p>
+			<form id="add-recipe-form" class="panel-form">
+				<input type="hidden" id="nr-id" value="">
+				<div class="field-row wrap">
+					<input type="text" id="nr-name" class="form-control field-full" placeholder="Nombre (Ej: Ron Cola)" required>
+					<input type="number" id="nr-xp" class="form-control field-sm" placeholder="XP" required value="150">
+				</div>
+				<input type="text" id="nr-desc" class="form-control" placeholder="Descripción breve" required>
+				<div>
+					<label class="toolbar-label">Requerimientos (Clic para seleccionar):</label>
+					<div id="nr-ing-selector" class="ingredient-selector"></div>
+					<input type="hidden" id="nr-ing-hidden" value="">
+				</div>
+				<div>
+					<label class="toolbar-label">Tipos de vaso disponibles:</label>
+					<div id="nr-glass-selector" class="glass-selector"></div>
+				</div>
+				<div>
+					<label class="toolbar-label">Distribución por modo (%)</label>
+					<div id="nr-serving-modes" class="serve-mode-grid"></div>
+				</div>
+				<div class="field-row">
+					<button type="submit" id="nr-submit" class="btn btn-start">Añadir Receta</button>
+					<button type="button" class="btn btn-secondary" data-action="reset-recipe-form">Cancelar edición</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<div id="glass-modal" class="modal-backdrop" data-action="close-glass-modal">
+		<div class="modal-card admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="glass-modal-title">
+			<div class="modal-header-row">
+				<h3 id="glass-modal-title" class="modal-title">Gestión de Vasos</h3>
+				<button class="btn btn-secondary btn-small" type="button" data-action="close-glass-modal">Cerrar</button>
+			</div>
+			<p class="modal-desc">Crea o edita un vaso desde este popup.</p>
+			<form id="glass-form" class="panel-form">
+				<input type="hidden" id="gl-id" value="">
+				<input type="hidden" id="gl-key" value="">
+				<div class="field-row wrap">
+					<input type="text" id="gl-name" class="form-control field-xl" placeholder="Nombre (ej: Highball)" required>
+				</div>
+				<div class="field-center">
+					<input type="text" id="gl-icon" class="form-control field-md" placeholder="Icono" value="🥤" required>
+					<input type="number" id="gl-capacity" class="form-control field-lg" placeholder="Capacidad mL" min="30" max="2000" required value="300">
+					<label class="checkbox-label"><input type="checkbox" id="gl-enabled" checked> Habilitado</label>
+				</div>
+				<div class="field-row">
+					<button type="submit" id="gl-submit" class="btn">Añadir vaso</button>
+					<button type="button" class="btn btn-secondary" data-action="reset-glass-form">Cancelar edición</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<div id="liquid-modal" class="modal-backdrop" data-action="close-liquid-modal">
+		<div class="modal-card admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="liquid-modal-title">
+			<div class="modal-header-row">
+				<h3 id="liquid-modal-title" class="modal-title">Gestión de Líquidos</h3>
+				<button class="btn btn-secondary btn-small" type="button" data-action="close-liquid-modal">Cerrar</button>
+			</div>
+			<p class="modal-desc">Añade o modifica los líquidos disponibles para los depósitos.</p>
+			<form id="liquid-form" class="panel-form">
+				<input type="hidden" id="liq-id" value="">
+				<div class="field-row wrap">
+					<input type="text" id="new-liq-name" class="form-control" placeholder="Nombre (Ej: Fanta)" required>
+					<select id="new-liq-type" class="form-control field-lg"><option value="mixer">Mezcla</option><option value="alcohol">Alcohol</option></select>
+				</div>
+				<div class="field-row">
+					<button class="btn" type="submit" id="liq-submit">Añadir líquido</button>
+					<button type="button" class="btn btn-secondary" data-action="reset-liquid-form">Cancelar edición</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<div id="user-modal" class="modal-backdrop" data-action="close-user-modal">
+		<div class="modal-card admin-modal-card admin-user-modal" role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
+			<div class="modal-header-row">
+				<h3 id="user-modal-title" class="modal-title">Nuevo usuario</h3>
+				<button class="btn btn-secondary btn-small" type="button" data-action="close-user-modal">Cerrar</button>
+			</div>
+			<p class="modal-desc">Crea o edita perfiles con permisos, XP y preferencias de interfaz.</p>
+			<form id="user-form" class="panel-form admin-user-form">
+				<input type="hidden" id="au-id" value="">
+				<div class="admin-form-grid">
+					<div class="form-group"><label>Usuario</label><input type="text" id="au-username" class="form-control" placeholder="Nombre de usuario" required></div>
+					<div class="form-group"><label>Nombre completo</label><input type="text" id="au-fullname" class="form-control" placeholder="Nombre completo" required></div>
+					<div class="form-group"><label>Contraseña</label><input type="password" id="au-password" class="form-control" placeholder="Dejar vacío para no cambiar"></div>
+					<div class="form-group"><label>Rol</label><select id="au-role" class="form-control"><option value="user">Usuario</option><option value="admin">Administrador</option></select></div>
+					<div class="form-group"><label>XP</label><input type="number" id="au-xp" class="form-control" min="0" max="999999" value="0"></div>
+					<div class="form-group"><label>Nivel</label><input type="number" id="au-level" class="form-control" min="1" max="999" value="1"></div>
+					<div class="form-group"><label>Bebida favorita</label><select id="au-favorite" class="form-control"><option value="">-- Sin favorita --</option></select></div>
+					<div class="form-group"><label>Tema</label><select id="au-theme" class="form-control"><option value="dark">Oscuro</option><option value="light">Claro</option></select></div>
+					<div class="form-group"><label>Acento</label><select id="au-accent" class="form-control"><option value="emerald">Verde</option><option value="blue">Azul</option><option value="orange">Naranja</option><option value="rose">Rosa</option><option value="slate">Pizarra</option></select></div>
+					<div class="form-group admin-form-wide"><label>Info</label><input type="text" id="au-info" class="form-control" maxlength="140" placeholder="Estado o nota interna"></div>
+					<div class="form-group admin-form-wide"><label>Avatar URL</label><input type="text" id="au-avatar-url" class="form-control" placeholder="/static/avatars/... o URL externa"></div>
+				</div>
+				<div class="field-row">
+					<button type="submit" id="au-submit" class="btn btn-start">Crear usuario</button>
+					<button type="button" class="btn btn-secondary" data-action="reset-user-form">Cancelar edición</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</body>
+</html>

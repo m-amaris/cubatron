@@ -7,3 +7,4 @@ data/cubatron.db
 .env
 .env.*
 !.env.example
+app/static/avatars/*

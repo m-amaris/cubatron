@@ -84,6 +84,24 @@ def _run_sqlite_compat_migrations() -> None:
                 "info",
                 "info TEXT NOT NULL DEFAULT ''",
             )
+            _sqlite_add_column_if_missing(
+                conn,
+                "user",
+                "is_archived",
+                "is_archived BOOLEAN NOT NULL DEFAULT 0",
+            )
+            _sqlite_add_column_if_missing(
+                conn,
+                "user",
+                "archived_at",
+                "archived_at DATETIME",
+            )
+            _sqlite_add_column_if_missing(
+                conn,
+                "user",
+                "archived_by",
+                "archived_by TEXT",
+            )
 
         if "dispense" in tables:
             _sqlite_add_column_if_missing(

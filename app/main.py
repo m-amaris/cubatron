@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from app.seed import seed
@@ -5,7 +7,9 @@ from app.routers import auth, users, drinks, machine, admin, web
 
 app = FastAPI(title="Cubatron API")
 
-app.mount("/static", StaticFiles(directory="/opt/cubatron/app/static"), name="static")
+BASE_DIR = Path(__file__).resolve().parent
+
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 @app.on_event("startup")
 def startup():

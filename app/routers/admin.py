@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field, constr
+from pydantic import BaseModel, Field
 from sqlmodel import Session, select
-from typing import Optional
+from typing import Optional, Annotated
+from datetime import datetime
 import json
 import re
 from app.database import get_session
-from app.models import User, Tank, DrinkRecipe, MachineEvent, GlassType
+from app.models import User, Tank, DrinkRecipe, MachineEvent, GlassType, Dispense
 from app.security import hash_password
 from app.dependencies import require_admin
 
@@ -25,15 +26,45 @@ SYSTEM_SETTINGS = {
 }
 
 class UserCreate(BaseModel):
-    username: constr(min_length=3, max_length=32)
-    password: constr(min_length=8, max_length=128)
-    full_name: constr(min_length=1, max_length=80)
-    role: constr(pattern="^(user|admin)$")
+    username: Annotated[str, Field(min_length=3, max_length=32)]
+    password: Annotated[str, Field(min_length=8, max_length=128)]
+    full_name: Annotated[str, Field(min_length=1, max_length=80)]
+    role: Annotated[str, Field(pattern="^(user|admin)$")]
+    xp: Annotated[int, Field(default=0, ge=0, le=999999)] = 0
+    level: Annotated[int, Field(default=1, ge=1, le=999)] = 1
+    favorite_mix: Annotated[Optional[str], Field(default=None, max_length=80)] = None
+    info: Annotated[str, Field(default="", max_length=140)] = ""
+    theme_mode: Annotated[str, Field(default="dark", pattern="^(dark|light)$")] = "dark"
+    accent_color: Annotated[str, Field(default="emerald", pattern="^(emerald|blue|orange|rose|slate)$")] = "emerald"
+    avatar_url: Annotated[Optional[str], Field(default=None, max_length=255)] = None
+
+
+class UserUpdate(BaseModel):
+    username: Annotated[Optional[str], Field(default=None, min_length=3, max_length=32)] = None
+    full_name: Annotated[Optional[str], Field(default=None, min_length=1, max_length=80)] = None
+    password: Annotated[Optional[str], Field(default=None, min_length=8, max_length=128)] = None
+    role: Annotated[Optional[str], Field(default=None, pattern="^(user|admin)$")] = None
+    xp: Annotated[Optional[int], Field(default=None, ge=0, le=999999)] = None
+    level: Annotated[Optional[int], Field(default=None, ge=1, le=999)] = None
+    favorite_mix: Annotated[Optional[str], Field(default=None, max_length=80)] = None
+    info: Annotated[Optional[str], Field(default=None, max_length=140)] = None
+    theme_mode: Annotated[Optional[str], Field(default=None, pattern="^(dark|light)$")] = None
+    accent_color: Annotated[Optional[str], Field(default=None, pattern="^(emerald|blue|orange|rose|slate)$")] = None
+    avatar_url: Annotated[Optional[str], Field(default=None, max_length=255)] = None
+
+
+class UserArchiveUpdate(BaseModel):
+    is_archived: bool = True
 
 
 class LiquidSetting(BaseModel):
-    name: constr(min_length=1, max_length=40)
-    type: constr(pattern="^(mixer|alcohol)$")
+    name: Annotated[str, Field(min_length=1, max_length=40)]
+    type: Annotated[str, Field(pattern="^(mixer|alcohol)$")]
+
+
+class LiquidUpdate(BaseModel):
+    name: Annotated[str, Field(min_length=1, max_length=40)]
+    type: Annotated[str, Field(pattern="^(mixer|alcohol)$")]
 
 
 class AdminSettingsUpdate(BaseModel):
@@ -60,18 +91,27 @@ class RecipeUpdate(BaseModel):
 
 
 class GlassCreate(BaseModel):
-    key: Optional[constr(min_length=1, max_length=32, pattern=r"^[a-z0-9_-]+$")] = None
-    name: constr(min_length=1, max_length=40)
-    icon: constr(min_length=1, max_length=8) = "🥤"
-    capacity_ml: int = Field(ge=30, le=2000)
+    key: Annotated[Optional[str], Field(default=None, min_length=1, max_length=32, pattern=r"^[a-z0-9_-]+$")] = None
+    name: Annotated[str, Field(min_length=1, max_length=40)]
+    icon: Annotated[str, Field(min_length=1, max_length=8)] = "🥤"
+    capacity_ml: Annotated[int, Field(ge=30, le=2000)]
     enabled: bool = True
 
 
 class GlassUpdate(BaseModel):
-    name: constr(min_length=1, max_length=40)
-    icon: constr(min_length=1, max_length=8) = "🥤"
-    capacity_ml: int = Field(ge=30, le=2000)
+    name: Annotated[str, Field(min_length=1, max_length=40)]
+    icon: Annotated[str, Field(min_length=1, max_length=8)] = "🥤"
+    capacity_ml: Annotated[int, Field(ge=30, le=2000)]
     enabled: bool = True
+
+
+def _user_out(user: User, consumptions: int = 0, last_activity: Optional[str] = None) -> dict:
+    out = user.model_dump() if hasattr(user, "model_dump") else user.dict()
+    out["consumptions"] = consumptions
+    out["last_activity"] = last_activity
+    out["created_at"] = user.created_at.isoformat() if getattr(user, "created_at", None) else None
+    out["archived_at"] = user.archived_at.isoformat() if getattr(user, "archived_at", None) else None
+    return out
 
 
 def _slugify_glass_key(value: str) -> str:
@@ -103,11 +143,81 @@ def _glass_out(glass: GlassType) -> dict:
 
 @router.get("/overview")
 def overview(session: Session = Depends(get_session), admin: User = Depends(require_admin)):
+    users = session.exec(select(User)).all()
+    recipes = session.exec(select(DrinkRecipe)).all()
+    glasses = session.exec(select(GlassType)).all()
+    tanks = session.exec(select(Tank)).all()
+    events = session.exec(select(MachineEvent)).all()
     return {
-        "users": len(session.exec(select(User)).all()),
-        "recipes": len(session.exec(select(DrinkRecipe)).all()),
-        "tanks": len(session.exec(select(Tank)).all()),
-        "events": len(session.exec(select(MachineEvent)).all())
+        "users": len(users),
+        "admins": sum(1 for user in users if user.role == "admin"),
+        "recipes": len(recipes),
+        "enabled_recipes": sum(1 for recipe in recipes if getattr(recipe, "enabled", True)),
+        "glasses": len(glasses),
+        "enabled_glasses": sum(1 for glass in glasses if getattr(glass, "enabled", True)),
+        "liquids": len(SYSTEM_SETTINGS.get("liquids", [])),
+        "tanks": len(tanks),
+        "events": len(events),
+    }
+
+
+@router.get("/users")
+def list_users(session: Session = Depends(get_session), admin: User = Depends(require_admin)):
+    users = session.exec(select(User).order_by(User.created_at.desc())).all()
+    dispenses = session.exec(select(Dispense).order_by(Dispense.created_at.desc())).all()
+
+    consumptions_by_user: dict[int, int] = {}
+    last_activity_by_user: dict[int, str] = {}
+
+    for dispense in dispenses:
+        consumptions_by_user[dispense.user_id] = consumptions_by_user.get(dispense.user_id, 0) + 1
+        if dispense.user_id not in last_activity_by_user and dispense.created_at:
+            last_activity_by_user[dispense.user_id] = dispense.created_at.isoformat()
+
+    return [
+        _user_out(
+            user,
+            consumptions=consumptions_by_user.get(user.id or -1, 0),
+            last_activity=last_activity_by_user.get(user.id or -1),
+        )
+        for user in users
+    ]
+
+
+@router.get("/users/{user_id}/activity")
+def get_user_activity(
+    user_id: int,
+    session: Session = Depends(get_session),
+    admin: User = Depends(require_admin),
+):
+    user = session.exec(select(User).where(User.id == user_id)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    dispenses = session.exec(
+        select(Dispense).where(Dispense.user_id == user_id).order_by(Dispense.created_at.desc()).limit(12)
+    ).all()
+
+    recipe_ids = list({d.recipe_id for d in dispenses})
+    recipe_names = {}
+    if recipe_ids:
+        recipes = session.exec(select(DrinkRecipe).where(DrinkRecipe.id.in_(recipe_ids))).all()
+        recipe_names = {recipe.id: recipe.name for recipe in recipes if recipe.id is not None}
+
+    return {
+        "user": _user_out(user),
+        "items": [
+            {
+                "type": d.action or "make_drink",
+                "status": d.status,
+                "recipe": recipe_names.get(d.recipe_id, f"Receta #{d.recipe_id}"),
+                "xp": d.xp_earned,
+                "glass_type": d.glass_type,
+                "serving_mode": d.serving_mode,
+                "time": d.created_at.isoformat() if d.created_at else None,
+            }
+            for d in dispenses
+        ],
     }
 
 @router.get("/settings")
@@ -119,6 +229,44 @@ def update_settings(settings: AdminSettingsUpdate, admin: User = Depends(require
     global SYSTEM_SETTINGS
     SYSTEM_SETTINGS.update(settings.model_dump())
     return SYSTEM_SETTINGS
+
+
+@router.post("/settings/liquids/{liquid_index}")
+def update_liquid(
+    liquid_index: int,
+    data: LiquidUpdate,
+    session: Session = Depends(get_session),
+    admin: User = Depends(require_admin),
+):
+    liquids = SYSTEM_SETTINGS.get("liquids", [])
+    if liquid_index < 0 or liquid_index >= len(liquids):
+        raise HTTPException(status_code=404, detail="Líquido no encontrado")
+
+    previous = liquids[liquid_index]
+    old_name = str(previous.get("name", ""))
+    liquids[liquid_index] = data.model_dump()
+    SYSTEM_SETTINGS["liquids"] = liquids
+
+    if old_name and old_name.lower() != data.name.lower():
+        recipes = session.exec(select(DrinkRecipe)).all()
+        for recipe in recipes:
+            ingredients = [item.strip() for item in (recipe.ingredients or "").split(",") if item.strip()]
+            updated = [data.name if item.lower() == old_name.lower() else item for item in ingredients]
+            if updated != ingredients:
+                recipe.ingredients = ", ".join(updated)
+                session.add(recipe)
+
+        tanks = session.exec(select(Tank)).all()
+        for tank in tanks:
+            if (tank.name or "").lower() == old_name.lower():
+                tank.name = data.name
+            if (tank.content or "").lower() == old_name.lower():
+                tank.content = data.name
+            session.add(tank)
+
+        session.commit()
+
+    return {"message": "Líquido actualizado", "settings": SYSTEM_SETTINGS, "renamed_from": old_name}
 
 @router.post("/users/create")
 def create_user(
@@ -134,11 +282,132 @@ def create_user(
         username=user_data.username,
         full_name=user_data.full_name,
         role=user_data.role,
-        password_hash=hash_password(user_data.password)
+        password_hash=hash_password(user_data.password),
+        xp=user_data.xp,
+        level=user_data.level,
+        favorite_mix=user_data.favorite_mix.strip() if user_data.favorite_mix else None,
+        info=user_data.info.strip()[:140],
+        theme_mode=user_data.theme_mode,
+        accent_color=user_data.accent_color,
+        avatar_url=user_data.avatar_url.strip() if user_data.avatar_url else None,
     )
+
+    if new_user.favorite_mix:
+        recipe_names = {name.lower().strip() for name in session.exec(select(DrinkRecipe.name)).all() if name}
+        if new_user.favorite_mix.lower() not in recipe_names:
+            raise HTTPException(status_code=400, detail="La bebida favorita debe ser una receta existente")
+
     session.add(new_user)
     session.commit()
     return {"message": "Usuario creado"}
+
+
+@router.post("/users/{user_id}")
+def update_user(
+    user_id: int,
+    data: UserUpdate,
+    session: Session = Depends(get_session),
+    admin: User = Depends(require_admin),
+):
+    user = session.exec(select(User).where(User.id == user_id)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if data.username is not None:
+        normalized_username = data.username.strip()
+        if normalized_username != user.username:
+            existing = session.exec(select(User).where(User.username == normalized_username, User.id != user_id)).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="El usuario ya existe")
+            user.username = normalized_username
+
+    if data.full_name is not None:
+        user.full_name = data.full_name.strip() or user.full_name
+
+    if data.password:
+        user.password_hash = hash_password(data.password)
+
+    if data.role is not None:
+        user.role = data.role
+
+    if data.xp is not None:
+        user.xp = data.xp
+
+    if data.level is not None:
+        user.level = data.level
+
+    if data.favorite_mix is not None:
+        favorite_mix = data.favorite_mix.strip()
+        if favorite_mix:
+            recipe_names = {name.lower().strip() for name in session.exec(select(DrinkRecipe.name)).all() if name}
+            if favorite_mix.lower() not in recipe_names:
+                raise HTTPException(status_code=400, detail="La bebida favorita debe ser una receta existente")
+            user.favorite_mix = favorite_mix
+        else:
+            user.favorite_mix = None
+
+    if data.info is not None:
+        user.info = data.info.strip()[:140]
+
+    if data.theme_mode is not None:
+        user.theme_mode = data.theme_mode
+
+    if data.accent_color is not None:
+        user.accent_color = data.accent_color
+
+    if data.avatar_url is not None:
+        avatar_url = data.avatar_url.strip()
+        user.avatar_url = avatar_url or None
+
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return {"message": "Usuario actualizado", "user": _user_out(user)}
+
+
+@router.post("/users/{user_id}/archive")
+def archive_user(
+    user_id: int,
+    data: UserArchiveUpdate,
+    session: Session = Depends(get_session),
+    admin: User = Depends(require_admin),
+):
+    user = session.exec(select(User).where(User.id == user_id)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if user.id == admin.id:
+        raise HTTPException(status_code=400, detail="No puedes archivarte a ti mismo")
+
+    user.is_archived = data.is_archived
+    user.archived_at = datetime.utcnow() if data.is_archived else None
+    user.archived_by = admin.username if data.is_archived else None
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return {"message": "Usuario archivado" if data.is_archived else "Usuario restaurado", "user": _user_out(user)}
+
+
+@router.delete("/users/{user_id}")
+def purge_user(
+    user_id: int,
+    session: Session = Depends(get_session),
+    admin: User = Depends(require_admin),
+):
+    user = session.exec(select(User).where(User.id == user_id)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if user.id == admin.id:
+        raise HTTPException(status_code=400, detail="No puedes eliminarte a ti mismo")
+    if not getattr(user, "is_archived", False):
+        raise HTTPException(status_code=400, detail="Archiva el usuario antes de eliminarlo de forma segura")
+
+    has_dispenses = session.exec(select(Dispense).where(Dispense.user_id == user_id).limit(1)).first()
+    if has_dispenses:
+        raise HTTPException(status_code=400, detail="No se puede eliminar un usuario con historial de consumiciones")
+
+    session.delete(user)
+    session.commit()
+    return {"message": "Usuario eliminado de forma segura"}
 
 @router.get("/recipes")
 def get_admin_recipes(session: Session = Depends(get_session), admin: User = Depends(require_admin)):
