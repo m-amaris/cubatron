@@ -102,6 +102,13 @@ def _run_sqlite_compat_migrations() -> None:
                 "archived_by",
                 "archived_by TEXT",
             )
+            # Add pin_hash for touchscreen PIN login (nullable)
+            _sqlite_add_column_if_missing(
+                conn,
+                "user",
+                "pin_hash",
+                "pin_hash TEXT",
+            )
 
         if "dispense" in tables:
             _sqlite_add_column_if_missing(

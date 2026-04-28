@@ -8,6 +8,7 @@ from app.database import get_session
 from app.models import User, Dispense, DrinkRecipe
 from app.dependencies import get_current_user
 from app.security import hash_password
+from app.security import verify_password, create_access_token
 from pydantic import BaseModel
 
 
@@ -243,3 +244,61 @@ def update_password(data: PasswordUpdate, session: Session = Depends(get_session
     session.add(user)
     session.commit()
     return {"message": "Contraseña actualizada correctamente"}
+
+
+class PinUpdate(BaseModel):
+    pin: str
+
+
+@router.post("/me/pin")
+def update_pin(data: PinUpdate, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
+    pin = (data.pin or "").strip()
+    if not pin or not pin.isdigit() or len(pin) != 6:
+        raise HTTPException(status_code=400, detail="El PIN debe tener exactamente 6 dígitos")
+    user.pin_hash = hash_password(pin)
+    session.add(user)
+    session.commit()
+    return {"message": "PIN configurado correctamente"}
+
+
+class PinLoginRequest(BaseModel):
+    user_id: int
+    pin: str
+
+
+@router.post("/touch/pin-login")
+def touch_pin_login(data: PinLoginRequest, session: Session = Depends(get_session)):
+    user = session.exec(select(User).where(User.id == data.user_id)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if not getattr(user, "pin_hash", None):
+        raise HTTPException(status_code=403, detail="PIN no configurado para este usuario")
+    pin = (data.pin or "").strip()
+    if not pin or not pin.isdigit() or len(pin) != 6:
+        raise HTTPException(status_code=400, detail="PIN inválido")
+    if not verify_password(pin, user.pin_hash):
+        raise HTTPException(status_code=401, detail="PIN inválido")
+
+    token = create_access_token({"sub": user.username, "role": user.role, "user_id": user.id}, expires_minutes=60)
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "username": user.username,
+        "user_id": user.id,
+        "full_name": user.full_name,
+        "role": user.role,
+    }
+
+
+@router.get("/touch/list")
+def touch_user_list(session: Session = Depends(get_session)):
+    users = session.exec(select(User).where(User.is_archived == False)).all()
+    out = []
+    for u in users:
+        out.append({
+            "id": u.id,
+            "username": u.username,
+            "full_name": u.full_name,
+            "avatar_url": u.avatar_url,
+        })
+    return out

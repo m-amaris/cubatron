@@ -7,6 +7,7 @@ class User(SQLModel, table=True):
     username: str = Field(index=True, unique=True)
     full_name: str
     password_hash: str
+    pin_hash: Optional[str] = None
     role: str = "user"
     avatar_url: Optional[str] = None
     favorite_mix: Optional[str] = None

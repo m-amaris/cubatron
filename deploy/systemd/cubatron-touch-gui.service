@@ -1,0 +1,24 @@
+
+[Unit]
+Description=Cubatron Touchscreen GUI
+After=multi-user.target dev-fb1.device
+Requires=dev-fb1.device
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/cubatron
+Environment=SDL_VIDEODRIVER=dummy
+Environment=SDL_FBDEV=/dev/fb1
+StandardOutput=tty
+StandardError=tty
+StandardInput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+Restart=on-failure
+RestartSec=2
+ExecStart=/usr/bin/python3 /opt/cubatron/app/touch_gui/gui.py
+
+[Install]
+WantedBy=multi-user.target
