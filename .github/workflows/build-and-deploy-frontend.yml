@@ -19,7 +19,7 @@ jobs:
       - name: Install frontend deps
         run: |
           cd apps/frontend
-          npm ci
+          npm install
 
       - name: Build frontend
         run: |
@@ -30,7 +30,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
-          path: apps/frontend/dist
+          path: app/static
 
   deploy:
     runs-on: ubuntu-latest
