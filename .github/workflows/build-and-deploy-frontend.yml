@@ -1,0 +1,65 @@
+name: Build and Deploy Frontend
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install frontend deps
+        run: |
+          cd apps/frontend
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd apps/frontend
+          npm run build
+
+      - name: Upload built files (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: apps/frontend/dist
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+
+      - name: Setup SSH
+        env:
+          RPI_HOST: ${{ secrets.RPI_HOST }}
+          RPI_USER: ${{ secrets.RPI_USER }}
+          RPI_SSH_PRIVATE_KEY: ${{ secrets.RPI_SSH_PRIVATE_KEY }}
+        run: |
+          if [ -z "$RPI_HOST" ] || [ -z "$RPI_USER" ] || [ -z "$RPI_SSH_PRIVATE_KEY" ]; then
+            echo "SSH deploy secrets not configured; skipping deploy." && exit 0
+          fi
+          mkdir -p ~/.ssh
+          echo "$RPI_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$RPI_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy via rsync to RPi
+        env:
+          RPI_HOST: ${{ secrets.RPI_HOST }}
+          RPI_USER: ${{ secrets.RPI_USER }}
+        run: |
+          rsync -avz --delete frontend-dist/ $RPI_USER@$RPI_HOST:/opt/cubatron/app/static/
+          ssh $RPI_USER@$RPI_HOST 'sudo systemctl restart cubatron.service'

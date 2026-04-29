@@ -1,21 +1,30 @@
 from pathlib import Path
 
 from fastapi import APIRouter
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse
 
 router = APIRouter()
-TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates"
+BASE_DIR = Path(__file__).resolve().parents[1]
+SPA_INDEX = BASE_DIR / "static" / "index.html"
 
 
-def render_template(name: str) -> HTMLResponse:
-    return HTMLResponse((TEMPLATES_DIR / name).read_text(encoding="utf-8"), status_code=200)
+def _spa_response() -> FileResponse:
+    # Return built SPA index. Assumes frontend build outputs into app/static
+    return FileResponse(str(SPA_INDEX))
 
 
-@router.get("/", response_class=HTMLResponse)
-def login_page():
-    return render_template("login.html")
+@router.get("/")
+def root():
+    return _spa_response()
 
 
-@router.get("/dashboard", response_class=HTMLResponse)
-def dashboard_page():
-    return render_template("dashboard.html")
+@router.get("/dashboard")
+def dashboard():
+    return _spa_response()
+
+
+@router.get("/{full_path:path}")
+def spa_catchall(full_path: str):
+    # Keep API and static routes handled by their routers/mounts; this
+    # catch-all will be reached for other paths and should serve the SPA.
+    return _spa_response()

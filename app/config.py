@@ -9,7 +9,7 @@ def _env_bool(key: str, default: bool) -> bool:
 		return default
 	return raw.strip().lower() not in {"0", "false", "no", "off"}
 
-BASE_DIR = Path("/opt/cubatron")
+BASE_DIR = Path(os.getenv("CUBATRON_BASE_DIR", "/opt/cubatron"))
 DATA_DIR = BASE_DIR / "data"
 
 SECRET_KEY = os.getenv("CUBATRON_SECRET_KEY") or secrets.token_urlsafe(64)
