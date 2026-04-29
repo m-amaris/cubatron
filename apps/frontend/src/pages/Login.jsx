@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export default function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [msg, setMsg] = useState('')
+  const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -19,14 +21,14 @@ export default function Login() {
         return
       }
       sessionStorage.setItem('cubatron_token', data.access_token)
-      window.location.href = '/dashboard'
+      navigate('/dashboard')
     } catch (err) {
       setMsg('Error de red')
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center px-4">
       <div className="p-6 bg-white rounded shadow w-full max-w-md">
         <h1 className="text-2xl font-semibold mb-4">Cubatron</h1>
         <form onSubmit={handleSubmit}>
