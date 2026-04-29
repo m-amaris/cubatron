@@ -35,7 +35,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && secrets.RPI_HOST && secrets.RPI_USER && secrets.RPI_SSH_PRIVATE_KEY
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
