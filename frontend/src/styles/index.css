@@ -1,0 +1,165 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+/* App-specific small utilities for mobile look */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.shadow-sm { box-shadow: 0 6px 18px rgba(15,23,42,0.06); }
+.rounded-2xl { border-radius: 18px; }
+
+/* Ensure page background is white */
+body, #root {
+  background-color: #ffffff;
+}
+
+/* Simple entrance animation used by menu pages and items */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fadeInUp 260ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+.menu-item { will-change: transform, opacity; }
+
+/* Dark theme variables and overrides */
+:root { --accent-color: #6366f1; --accent-color-rgb: 99,102,241; --card-bg: #ffffff; --surface-bg: #ffffff; }
+
+/* dark theme sets surface and card variables so components/ svgs can reuse them */
+[data-theme="dark"] { --card-bg: #0f1724; --surface-bg: #0b1220; }
+
+[data-theme="dark"] body,
+[data-theme="dark"] #root {
+  background-color: var(--surface-bg);
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] .bg-white {
+  background-color: var(--card-bg) !important;
+}
+
+[data-theme="dark"] .border-gray-100 {
+  border-color: #1f2937 !important;
+}
+
+[data-theme="dark"] .text-gray-500,
+[data-theme="dark"] .text-gray-600,
+[data-theme="dark"] .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+[data-theme="dark"] .text-gray-700 {
+  color: #e5e7eb !important;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background-color: var(--surface-bg);
+  color: #e5e7eb;
+  border-color: #1f2937;
+}
+
+[data-theme="dark"] .shadow-sm { box-shadow: 0 6px 18px rgba(2,6,23,0.6); }
+
+/* Make Tailwind's indigo accent follow the selected accent color */
+.bg-indigo-700 { background-color: var(--accent-color) !important; }
+
+/* Additional dark theme tweaks */
+[data-theme="dark"] .text-gray-800 {
+  color: #e5e7eb !important;
+}
+
+[data-theme="dark"] .text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .bg-gray-100 {
+  background-color: #0f1724 !important;
+}
+
+[data-theme="dark"] .bg-gray-50 {
+  background-color: #0b1220 !important;
+}
+
+[data-theme="dark"] .hover\:bg-gray-50:hover {
+  background-color: #0f1724 !important;
+}
+
+[data-theme="dark"] .shadow-lg { box-shadow: 0 8px 24px rgba(2,6,23,0.6); }
+
+/* Make Tailwind ring color follow selected accent */
+.ring-indigo-500 { --tw-ring-color: var(--accent-color) !important; }
+
+/* Map common accent text colors to the selected accent so components follow the user choice */
+.text-indigo-700,
+.text-emerald-700 {
+  color: var(--accent-color) !important;
+}
+
+.text-emerald-600,
+.text-indigo-600 { color: var(--accent-color) !important; }
+
+/* Login / slate helpers for dark theme */
+[data-theme="dark"] .bg-slate-50 { background-color: #071422 !important; }
+[data-theme="dark"] .text-slate-900 { color: #e5e7eb !important; }
+[data-theme="dark"] .placeholder-slate-400 { color: #9ca3af !important; }
+
+/* Specific gradient/card overrides for dark theme */
+[data-theme="dark"] .bg-gradient-to-br.from-emerald-100.to-green-50 {
+  background-image: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(6,95,70,0.03)) !important;
+}
+
+/* Handle white with opacity utilities (bg-white/80) in dark mode */
+[data-theme="dark"] .bg-white\/80 { background-color: rgba(255,255,255,0.06) !important; }
+
+/* Map light indigo utility used for small pills (calendar, badges) to a subtle accent tint */
+[data-theme="dark"] .bg-indigo-50 { background-color: rgba(var(--accent-color-rgb), 0.06) !important; }
+
+/* Make unselected rings dark in dark theme (ring-white used in accent picker) */
+[data-theme="dark"] .ring-white { --tw-ring-color: rgba(255,255,255,0.02) !important; }
+
+/* Slightly darker hover for elements that used bg-gray-50 */
+[data-theme="dark"] .hover\:bg-gray-50:hover { background-color: #0f1724 !important; }
+
+
+
+/* Modern animation utilities */
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+.animate-fade { animation: fadeIn 240ms cubic-bezier(.2,.8,.2,1) both; }
+
+@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+.animate-slide-down { animation: slideDown 260ms cubic-bezier(.2,.8,.2,1) both; }
+
+@keyframes popIn { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: scale(1); } }
+.animate-pop { animation: popIn 300ms cubic-bezier(.2,.8,.2,1) both; transform-origin: center; }
+
+@keyframes floaty { 0% { transform: translateY(0) } 50% { transform: translateY(-4px) } 100% { transform: translateY(0) } }
+.animate-float { animation: floaty 4s ease-in-out infinite; }
+
+/* Small press/interaction microcopy for buttons */
+.btn-press { transition: transform 160ms cubic-bezier(.2,.8,.2,1), box-shadow 160ms; }
+.btn-press:active { transform: translateY(1px) scale(.99); }
+
+/* Allow simple stagger using inline style --delay */
+.stagger > * { opacity: 0; transform: translateY(6px); }
+.stagger > * { animation: fadeInUp 320ms cubic-bezier(.2,.8,.2,1) both; animation-delay: var(--delay, 0ms); }
+
+.menu-item:hover { transform: translateX(4px); transition: transform 180ms ease; }
+
+/* Base micro-interactions for native buttons to give consistent press feedback */
+button { transition: transform 160ms cubic-bezier(.2,.8,.2,1), box-shadow 160ms; }
+button:active { transform: translateY(1px) scale(.99); }
+
+
+
+

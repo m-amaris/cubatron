@@ -1,0 +1,9 @@
+{
+  "name": "Cubatron",
+  "short_name": "Cubatron",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "description": "Automated mixology machine interface",
+  "icons": []
+}

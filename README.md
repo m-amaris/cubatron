@@ -92,7 +92,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 cd frontend
 npm run dev
 ```
-*(El frontend de Vite habitualmente se levanta en el puerto `5173` y se configura para hacer proxy de las peticiones `/api` al puerto `8000` de FastAPI).*
+*(El frontend de Vite habitualmente se levanta en el puerto `5173` y se configura para hacer proxy de las peticiones `/api` al puerto `8000` de FastAPI).* Desde otros dispositivos se puede acceder a la interfaz accediendo a `http://{IP_EQUIPO}:5173`
 
 ### Exponer WSL a la red local (Opcional)
 Para probar Cubatron desde otro dispositivo (ej. tu móvil), enruta el puerto de Windows hacia la subred virtual de WSL. En **PowerShell como Administrador**:
@@ -106,6 +106,7 @@ netsh interface portproxy add v4tov4 listenport=8000 listenaddress=0.0.0.0 conne
 ```powershell
 netsh advfirewall firewall add rule name="WSL 8000" dir=in action=allow protocol=TCP localport=8000
 ```
+Se puede aplicar el mismo proceso para habilitar acceder al frontend.
 
 ## 5. Hardware: Conexiones y UART (STM32)
 
