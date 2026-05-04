@@ -24,12 +24,37 @@ cubatron/
 
 Asegúrate de tener instalados los siguientes componentes en tu sistema (WSL o Raspberry Pi):
 
-- **Python 3.11+** y `venv`.
+- **Python 3.11** (la versión 3.12+ no es compatible con las dependencias actuales).
 - **Node.js (v18 o superior)** y `npm` (para el entorno frontend).
 - **Git**, **curl** y herramientas básicas de sistema.
 
+### Instalación de Python 3.11
+
+Si tu sistema no tiene Python 3.11 (ej. Debian trixie con Python 3.13), instálalo usando `pyenv`:
+
 ```bash
-# Ejemplo de instalación en sistemas basados en Debian/Ubuntu (WSL o RPi OS)
+# Instalar dependencias de desarrollo (necesario para compilar Python)
+sudo apt update
+sudo apt install -y build-essential libssl-dev zlib1g-dev libbz2-dev \
+  libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev \
+  xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
+
+# Instalar pyenv
+curl https://pyenv.run | bash
+
+# Configurar pyenv en tu shell (añade al ~/.bashrc para persistencia)
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+
+# Instalar Python 3.11.12
+pyenv install 3.11.12
+pyenv global 3.11.12
+```
+
+Si tu sistema ya tiene Python 3.11 disponible, instala las herramientas básicas:
+
+```bash
 sudo apt update
 sudo apt install -y python3.11-venv python3-pip git curl nodejs npm
 ```
@@ -44,10 +69,19 @@ git clone git@github.com:m-amaris/cubatron.git
 cd cubatron
 
 # 2. Preparar Backend (Python)
+# Si usas pyenv, asegúrate de tener la versión correcta:
+# export PYENV_ROOT="$HOME/.pyenv"
+# export PATH="$PYENV_ROOT/bin:$PATH"
+# eval "$(pyenv init -)"
+# pyenv local 3.11.12
+
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -U pip
 pip install -r requirements.txt
+
+# Arreglar compatibilidad de bcrypt (requerido)
+pip install bcrypt==4.0.1
 
 # 3. Preparar Frontend (Node.js)
 cd frontend
@@ -82,6 +116,11 @@ Para desarrollar en local, el flujo de trabajo requiere levantar el backend y el
 
 **Terminal 1: Backend (FastAPI)**
 ```bash
+# Si usas pyenv, configúralo primero:
+# export PYENV_ROOT="$HOME/.pyenv"
+# export PATH="$PYENV_ROOT/bin:$PATH"
+# eval "$(pyenv init -)"
+
 source .venv/bin/activate
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
