@@ -35,35 +35,64 @@ class UARTService:
         parsed = self._parse_status_response(resp)
         return parsed
 
+    def _log_uart(self, direction: str, data: str):
+        """Log UART communication to data/uart.log"""
+        try:
+            log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'uart.log')
+            ts = time.strftime('%Y-%m-%d %H:%M:%S')
+            with open(log_path, 'a') as f:
+                f.write(f"[{ts}] {direction}: {data}\n")
+        except Exception:
+            pass
+
     async def _send_command(self, cmd: str) -> str:
         """Send a raw command to the hardware or simulate it in dry-run.
         Recognized commands: MAKE, CLEAN, STOP, TEMP, STATUS
         """
+        self._log_uart('TX', cmd)
+
         if self.dry_run:
-            # Simulate responses
-            if cmd.startswith('MAKE'):
-                return '|ACK|'
-            if cmd == 'CLEAN':
-                return '|ACK|'
-            if cmd == 'STOP':
-                return '|ACK|'
-            if cmd.startswith('TEMP'):
-                return '|ACK|'
-            if cmd == 'STATUS':
-                # format: |INFO;estado;nivel1;nivel2;nivel3;nivel4;temperatura|
-                return f"|INFO;{self.state};{self.levels[0]};{self.levels[1]};{self.levels[2]};{self.levels[3]};{round(self.temperature,1)}|"
-            return '|OK|'
+            resp = self._simulate_response(cmd)
+            self._log_uart('RX', resp)
+            return resp
         else:
-            # Real serial comms would go here (pyserial)
             try:
                 import serial
-                ser = serial.Serial(os.getenv('CUBATRON_SERIAL_PORT', '/dev/ttyUSB0'), 115200, timeout=1)
-                ser.write((cmd + '\n').encode())
-                line = ser.readline().decode().strip()
+                port = os.getenv('CUBATRON_UART_PORT', '/dev/serial0')
+                baudrate = int(os.getenv('CUBATRON_UART_BAUDRATE', '115200'))
+                ser = serial.Serial(port, baudrate, timeout=2)
+                # Protocol uses pipe-delimited frames without newlines
+                ser.write(cmd.encode())
+                # Read until closing pipe
+                resp = ''
+                while True:
+                    ch = ser.read(1)
+                    if not ch:
+                        break
+                    resp += ch.decode(errors='replace')
+                    if ch == b'|' and resp.startswith('|'):
+                        break
                 ser.close()
-                return line
-            except Exception:
+                resp = resp.strip()
+                self._log_uart('RX', resp)
+                return resp
+            except Exception as e:
+                self._log_uart('ERROR', str(e))
                 return '|ERROR|'
+
+    def _simulate_response(self, cmd: str) -> str:
+        """Generate simulated responses for dry-run mode."""
+        if cmd.startswith('MAKE'):
+            return '|ACK|'
+        if cmd == 'CLEAN':
+            return '|ACK|'
+        if cmd == 'STOP':
+            return '|ACK|'
+        if cmd.startswith('TEMP'):
+            return '|ACK|'
+        if cmd == 'STATUS':
+            return f"|INFO;{self.state};{self.levels[0]};{self.levels[1]};{self.levels[2]};{self.levels[3]};{round(self.temperature,1)}|"
+        return '|OK|'
 
     def _parse_status_response(self, resp: str) -> Dict:
         # Expecting format: |INFO;estado;nivel1;nivel2;nivel3;nivel4;temperatura|

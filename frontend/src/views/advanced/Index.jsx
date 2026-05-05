@@ -6,6 +6,7 @@ const ADVANCED_ITEMS = [
   { key: 'machine', label: 'Estado de la máquina', description: 'Ver estado del hardware y acciones manuales', icon: 'M4 6h16 M4 12h10 M4 18h7' },
   { key: 'users', label: 'Gestión de usuarios', description: 'Crear, editar roles y eliminar usuarios', icon: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z' },
   { key: 'recipes', label: 'Gestión de recetas', description: 'Crear, editar y eliminar cócteles', icon: 'M12 2l3 7h7l-5.5 4 2 7L12 17l-6.5 3 2-7L2 9h7z' },
+  { key: 'ingredients', label: 'Líquidos', description: 'Gestionar ingredientes y líquidos disponibles', icon: 'M9 3h6M9 3v7.5L5.5 16A2 2 0 007 19h10a2 2 0 001.5-3L15 10.5V3' },
   { key: 'cups', label: 'CRUD de vasos', description: 'Configurar vasos y capacidades', icon: 'M6 2h12l-2 18H8L6 2z' },
   { key: 'deposits', label: 'Depósitos', description: 'Asignar contenido y niveles de los depósitos', icon: 'M5 13l4 4L19 7' }
 ]

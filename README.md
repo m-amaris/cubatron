@@ -170,7 +170,7 @@ Por defecto, la RPi usa el puerto serie para la consola de login. Debes desactiv
 
 **Configuración UART en el `.env`:**
 - **Local/WSL:** Mantén `CUBATRON_UART_DRY_RUN=1`. Simularemos la máquina y los comandos se escribirán en `data/uart.log` [file:1].
-- **Producción (RPi):** Configura `CUBATRON_UART_PORT=/dev/serial0`, baudrate en `115200` y establece `CUBATRON_UART_DRY_RUN=0` para activar el envío físico [file:1].
+- **Producción (RPi):** Configura `CUBATRON_UART_PORT=/dev/serial0`, baudrate en `CUBATRON_UART_BAUDRATE=115200` y establece `CUBATRON_UART_DRY_RUN=0` para activar el envío físico [file:1].
 
 ## 6. Despliegue en Producción (Raspberry Pi)
 

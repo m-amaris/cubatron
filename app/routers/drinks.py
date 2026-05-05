@@ -123,6 +123,49 @@ def list_ingredients(db: Session = Depends(get_db)):
     return [{"id": i.id, "name": i.name, "description": i.description} for i in ingredients]
 
 
+@router.post('/ingredients')
+def create_ingredient(payload: dict, admin_user=Depends(get_admin_user), db: Session = Depends(get_db)):
+    from app.models.models import Ingredient
+    name = payload.get('name')
+    if not name:
+        raise HTTPException(status_code=400, detail='name required')
+    if db.query(Ingredient).filter(Ingredient.name == name).first():
+        raise HTTPException(status_code=400, detail='Ingredient name exists')
+    ing = Ingredient(name=name, description=payload.get('description', ''))
+    db.add(ing)
+    db.commit()
+    db.refresh(ing)
+    return {"id": ing.id, "name": ing.name, "description": ing.description}
+
+
+@router.patch('/ingredients/{ingredient_id}')
+def update_ingredient(ingredient_id: int, payload: dict, admin_user=Depends(get_admin_user), db: Session = Depends(get_db)):
+    from app.models.models import Ingredient
+    ing = db.query(Ingredient).filter(Ingredient.id == ingredient_id).first()
+    if not ing:
+        raise HTTPException(status_code=404, detail='Ingredient not found')
+    if payload.get('name') is not None:
+        if db.query(Ingredient).filter(Ingredient.name == payload.get('name'), Ingredient.id != ing.id).first():
+            raise HTTPException(status_code=400, detail='Ingredient name exists')
+        ing.name = payload.get('name')
+    if payload.get('description') is not None:
+        ing.description = payload.get('description')
+    db.commit()
+    db.refresh(ing)
+    return {"id": ing.id, "name": ing.name, "description": ing.description}
+
+
+@router.delete('/ingredients/{ingredient_id}')
+def delete_ingredient(ingredient_id: int, admin_user=Depends(get_admin_user), db: Session = Depends(get_db)):
+    from app.models.models import Ingredient
+    ing = db.query(Ingredient).filter(Ingredient.id == ingredient_id).first()
+    if not ing:
+        raise HTTPException(status_code=404, detail='Ingredient not found')
+    db.delete(ing)
+    db.commit()
+    return {"status": "deleted", "id": ingredient_id}
+
+
 @router.post('/drinks/make')
 async def make_drink(payload: dict, request: Request, db: Session = Depends(get_db)):
     recipe_id = payload.get('recipe_id')

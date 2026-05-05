@@ -50,13 +50,15 @@ Agrupa las vistas secundarias:
 - **Mi Perfil:** Modificación de Avatar, tema de la interfaz (claro/oscuro) y color de acento.
 - **Historial Completo:** Listado detallado, paginable y filtrable de todas las consumiciones del usuario.
 - **Panel de Administración:** *(Solo visible si el rol es `admin`)*.
-  - **Gestión de Usuarios:** Interfaz para crear, editar, asignar roles o eliminar usuarios del sistema.
-  - **Gestión de Recetas:** Crear, editar o eliminar cócteles e ingredientes.
+  - **Gestión de Usuarios:** Interfaz para crear, editar, asignar roles, cambiar contraseñas o eliminar usuarios del sistema.
+  - **Gestión de Recetas:** Crear, editar o eliminar cócteles.
+  - **Gestión de Líquidos:** CRUD de ingredientes/líquidos disponibles para las recetas.
   - **CRUD de Vasos:** Configuración de contenedores (nombre, icono, capacidad y habilitación).
   - **Estado de la Máquina:**
     - Monitorización en tiempo real del hardware (estado del STM32, temperatura).
     - Gestión de los 4 Depósitos (asignación de contenido, nivel restante).
     - Botones de acción manual: Limpiar circuitos (`CLEAN`), Purgar depósito, y Parada de emergencia (`STOP`), configurar cada cuanto se envia un comando STATUS periódico (por defecto cada 20s) para actualizar información.
+  - Cada sección del panel avanzado redirige a una página independiente con navegación dedicada.
 
 ## Integración con la API
 El frontend consume los siguientes endpoints del backend FastAPI:
@@ -64,3 +66,4 @@ El frontend consume los siguientes endpoints del backend FastAPI:
 - `/api/drinks/*`: Cálculo de recetas, petición de servido (`make`).
 - `/api/machine/*`: Estados, acciones UART y temperaturas.
 - `/api/users/*`: Perfiles, historial, ranking y administración de usuarios.
+- `/api/ingredients`: Gestión de ingredientes/líquidos (CRUD).

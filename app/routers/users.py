@@ -35,7 +35,7 @@ def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
 
 
 @router.post('/', summary='Create user')
-def create_user(payload: dict, db: Session = Depends(get_db)):
+def create_user(payload: dict, admin_user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
     username = payload.get('username')
     password = payload.get('password')
     if not username or not password:
@@ -93,6 +93,8 @@ def update_user(user_id: int, payload: dict, current_user: User = Depends(get_cu
         if not current_user.is_admin:
             raise HTTPException(status_code=403, detail='Admin access required')
         target.is_admin = bool(payload.get('is_admin'))
+    if payload.get('password') is not None:
+        target.hashed_password = get_password_hash(payload.get('password'))
     db.commit()
     db.refresh(target)
     return {"id": target.id, "username": target.username, "is_admin": target.is_admin, "xp": target.xp, "gender": target.gender}
